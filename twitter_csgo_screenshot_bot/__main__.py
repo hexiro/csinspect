@@ -3,18 +3,15 @@ from __future__ import annotations
 import io
 import os
 import pathlib
-from typing import TYPE_CHECKING
+import re
 
 import dotenv
-import regex
 import requests
+import tweepy
+import tweepy.models
 from redis import Redis
-from twython import Twython
 
 from twitter_csgo_screenshot_bot import swapgg
-
-if TYPE_CHECKING:
-    from twitter_csgo_screenshot_bot.datatypes import SearchResults, SearchItem
 
 dotenv_path = pathlib.Path(__file__).parents[1] / ".env"
 dotenv.load_dotenv(dotenv_path)
@@ -26,54 +23,57 @@ redis = Redis(
     db=int(os.environ["REDIS_DATABASE"])
 )
 
-APP_KEY = os.environ["TWITTER_API_KEY"]
-APP_SECRET = os.environ["TWITTER_API_KEY_SECRET"]
+TWITTER_API_KEY = os.environ["TWITTER_API_KEY"]
+TWITTER_API_KEY_SECRET = os.environ["TWITTER_API_KEY_SECRET"]
 
-OAUTH_TOKEN = redis.get("TWITTER_OAUTH_TOKEN")
-OAUTH_TOKEN_SECRET = redis.get("TWITTER_OAUTH_TOKEN_SECRET")
+TWITTER_ACCESS_TOKEN = os.environ["TWITTER_ACCESS_TOKEN"]
+TWITTER_ACCESS_TOKEN_SECRET = os.environ["TWITTER_ACCESS_TOKEN_SECRET"]
 
-twitter = Twython(app_key=APP_KEY, app_secret=APP_SECRET,
-                  oauth_token=OAUTH_TOKEN, oauth_token_secret=OAUTH_TOKEN_SECRET)
+authentication = tweepy.OAuthHandler(TWITTER_API_KEY, TWITTER_API_KEY_SECRET)
+authentication.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
+
+twitter = tweepy.API(authentication)
 
 INSPECT_LINK_QUERY = '"steam://rungame/730" "+csgo_econ_action_preview"'
-INSPECT_URL_REGEX = regex.compile(
-    r"(steam:\/\/rungame\/730\/[0-9]+\/\+csgo_econ_action_preview%20((?<S>S[0-9]+)|(?<M>M[0-9]+)))(?<A>A[0-9]+)(?<D>D[0-9]+)")
+INSPECT_URL_REGEX = re.compile(
+    r"(steam:\/\/rungame\/730\/[0-9]+\/\+csgo_econ_action_preview%20)(?:(?P<S>S[0-9]+)|(?P<M>M[0-9]+))(?P<A>A[0-9]+)(?P<D>D[0-9]+)")
 
 
-def already_has_screenshot(tweet: SearchItem) -> bool:
+def already_has_screenshot(tweet: tweepy.models.Status) -> bool:
     try:
-        if tweet["extended_entities"]["media"]:
+        if tweet.extended_entities["media"]:
             return True
-    except KeyError:
+    except (AttributeError, KeyError):
         pass
     return False
 
 
-def already_responded(tweet: SearchItem) -> bool:
+def already_responded(tweet: tweepy.models.Status) -> bool:
     try:
-        status_id = tweet["id_str"]
-    except KeyError:
+        status_id = tweet.id_str
+    except AttributeError:
         return True
     return redis.get(status_id) is not None
 
 
 def main() -> None:
-    search_results: SearchResults = twitter.search(q=INSPECT_LINK_QUERY, result_type="recent", count=100,
-                                                   tweet_mode="extended")
+    search_results: tweepy.models.SearchResults = twitter.search_tweets(q=INSPECT_LINK_QUERY, result_type="recent",
+                                                                        count=100, tweet_mode="extended")
+    tweets: dict[str, tweepy.models.Status] = {}
 
-    tweets: dict[str, SearchItem] = {}
-
-    for tweet in search_results["statuses"]:
-        if already_has_screenshot(tweet):
+    for tweet in search_results:
+        already_has_screenshot_result = already_has_screenshot(tweet)
+        already_responded_result = already_responded(tweet)
+        print(f"{already_responded_result=} {already_has_screenshot_result=}")
+        if already_has_screenshot_result:
             continue
-        print(f"{already_responded(tweet)=}")
-        if already_responded(tweet):
+        if already_responded_result:
             continue
-        text = tweet["full_text"]
-        match: regex.Match = INSPECT_URL_REGEX.search(text)
+        text: str = tweet.full_text
+        match: re.Match = INSPECT_URL_REGEX.search(text)
         if not match:
             continue
-
+        print(f"{match=}")
         inspect_link: str = match.group()
         tweets[inspect_link] = tweet
         swapgg.take_screenshot(inspect_link)
@@ -84,20 +84,25 @@ def main() -> None:
         if not image_link:
             continue
 
-        status_id = tweet["id_str"]
-        screen_name = tweet["user"]["screen_name"]
+        status_id: str = tweet.id_str
+        screen_name: str = tweet.user["screen_name"]
 
         if not status_id or not screen_name:
             continue
 
         screenshot = requests.get(image_link)
         screenshot_file = io.BytesIO(screenshot.content)
-        media = twitter.upload_media(media=screenshot_file)
-        print(tweet)
+
+        media: tweepy.models.Media = twitter.media_upload(filename=image_link, file=screenshot_file)
+        print(media)
 
         redis.set(name=status_id, value=image_link, ex=60 * 60 * 24 * 7)
-        twitter.update_status(status=f"@{screen_name}",
-                              in_reply_to_status_id=status_id, media_ids=[media["media_id"]])
+        updated_status: tweepy.models.Status = twitter.update_status(
+            status=f"@{screen_name}",
+            in_reply_to_status_id=status_id,
+            media_ids=[media.media_id]
+        )
+        print(updated_status)
     swapgg.sio.disconnect()
 
 
