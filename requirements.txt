@@ -1,0 +1,5 @@
+twython == 3.9.1
+requests == 2.27.1
+redis == 4.1.4
+python_socketio == 5.5.2
+python_dotenv == 0.19.2
