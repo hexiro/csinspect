@@ -1,5 +1,7 @@
 tweepy >= 4.6.0
 requests >= 2.27.1
 redis >= 4.1.4
+rich >= 11.1.0
 python_socketio ~= 5.5.2
 python-dotenv ~= 0.19.2
+
