@@ -66,8 +66,13 @@ def tweet_to_url(tweet: tweepy.models.Status) -> str:
 
 def main() -> None:
     try:
+        extra_params = {}
+        if since_id := redis.get("TWITTER_SINCE_ID"):
+            extra_params["since_id"] = since_id
+
         search_results: tweepy.models.SearchResults = twitter.search_tweets(q=INSPECT_LINK_QUERY, result_type="recent",
-                                                                            count=100, tweet_mode="extended")
+                                                                            count=100, tweet_mode="extended",
+                                                                            **extra_params)
         tweets: dict[tweepy.models.Status, list[str]] = defaultdict(list)
 
         for tweet in search_results:
@@ -107,6 +112,10 @@ def main() -> None:
                     continue
                 image_links.append(image_link)
 
+            if not image_links:
+                logger.warning("Couldn't get any image links")
+                continue
+
             logger.info("Preparing Tweet...")
 
             status_id: str = tweet.id_str
@@ -142,6 +151,9 @@ def main() -> None:
             logger.info("Successfully sent tweet!")
 
             redis.set(name=status_id, value=updated_status.id_str, ex=60 * 60 * 24 * 7)
+
+        since_id = max(tweet.id for tweet in tweets)
+        redis.set("TWITTER_SINCE_ID", since_id)
     finally:
         swapgg.socket.disconnect()
 
