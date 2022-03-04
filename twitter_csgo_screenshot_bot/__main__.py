@@ -40,7 +40,7 @@ twitter = tweepy.API(authentication)
 
 INSPECT_LINK_QUERY = '"steam://rungame/730" "+csgo_econ_action_preview"'
 INSPECT_URL_REGEX = re.compile(
-    r"(steam:\/\/rungame\/730\/[0-9]+\/\+csgo_econ_action_preview%20)(?:(?P<S>S[0-9]+)|(?P<M>M[0-9]+))(?P<A>A[0-9]+)(?P<D>D[0-9]+)")
+    r"(steam:\/\/rungame\/730\/[0-9]+\/(?:\+| )csgo_econ_action_preview(?:%20| ))(?:(?P<S>S[0-9]+)|(?P<M>M[0-9]+))(?P<A>A[0-9]+)(?P<D>D[0-9]+)")
 
 
 def already_has_screenshot(tweet: tweepy.models.Status) -> bool:
