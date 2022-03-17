@@ -8,7 +8,7 @@ import requests
 import socketio
 
 if TYPE_CHECKING:
-    from twitter_csgo_screenshot_bot.datatypes import SwapGGScreenshotResponse, ScreenshotReady
+    from csgoinspect.datatypes import SwapGGScreenshotResponse, ScreenshotReady
 
 
 class INVALID:
