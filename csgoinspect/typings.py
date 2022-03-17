@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from typing import TypedDict, Literal
+from typing import TYPE_CHECKING, NewType
+
+if TYPE_CHECKING:
+    from typing import TypedDict, Literal
+
+
+InspectLink = NewType("InspectLink", str)
 
 
 class SwapGGScreenshotResponse(TypedDict):

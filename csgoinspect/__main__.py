@@ -13,7 +13,9 @@ import tweepy
 import tweepy.models
 from redis import Redis
 
-from twitter_csgo_screenshot_bot import swapgg
+from csgoinspect import swapgg
+from csgoinspect.constants import TWITTER_API_KEY, TWITTER_API_KEY_SECRET, TWITTER_ACCESS_TOKEN, \
+    TWITTER_ACCESS_TOKEN_SECRET, INSPECT_LINK_QUERY
 
 dotenv_path = pathlib.Path(__file__).parents[1] / ".env"
 dotenv.load_dotenv(dotenv_path)
@@ -27,20 +29,8 @@ redis = Redis(
 
 logger = logging.getLogger(__name__)
 
-TWITTER_API_KEY = os.environ["TWITTER_API_KEY"]
-TWITTER_API_KEY_SECRET = os.environ["TWITTER_API_KEY_SECRET"]
 
-TWITTER_ACCESS_TOKEN = os.environ["TWITTER_ACCESS_TOKEN"]
-TWITTER_ACCESS_TOKEN_SECRET = os.environ["TWITTER_ACCESS_TOKEN_SECRET"]
 
-authentication = tweepy.OAuthHandler(TWITTER_API_KEY, TWITTER_API_KEY_SECRET)
-authentication.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
-
-twitter = tweepy.API(authentication)
-
-INSPECT_LINK_QUERY = '"steam://rungame/730" "+csgo_econ_action_preview"'
-INSPECT_URL_REGEX = re.compile(
-    r"(steam:\/\/rungame\/730\/[0-9]+\/(?:\+| )csgo_econ_action_preview(?:%20| ))(?:(?P<S>S[0-9]+)|(?P<M>M[0-9]+))(?P<A>A[0-9]+)(?P<D>D[0-9]+)")
 
 
 def already_has_screenshot(tweet: tweepy.models.Status) -> bool:
@@ -66,13 +56,7 @@ def tweet_to_url(tweet: tweepy.models.Status) -> str:
 
 def main() -> None:
     try:
-        extra_params = {}
-        if since_id := redis.get("TWITTER_SINCE_ID"):
-            extra_params["since_id"] = since_id
 
-        search_results: tweepy.models.SearchResults = twitter.search_tweets(q=INSPECT_LINK_QUERY, result_type="recent",
-                                                                            count=100, tweet_mode="extended",
-                                                                            **extra_params)
         tweets: dict[tweepy.models.Status, list[str]] = defaultdict(list)
 
         for tweet in search_results:
