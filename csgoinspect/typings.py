@@ -2,26 +2,24 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import tweepy.models
-
 if TYPE_CHECKING:
-    from typing import TypedDict, Literal, TypeAlias
+    from typing import TypedDict, Literal
 
 
 class SwapGGScreenshotResponse(TypedDict):
     time: int
     status: str
-    result: CompletedResult | NotCompletedResult
+    result: ScreenshotCompletedResult | ScreenshotNotCompletedResult
 
 
-class NotCompletedResult(TypedDict):
+class ScreenshotNotCompletedResult(TypedDict):
     marketName: str
     inspectLink: str
     state: str
     itemInfo: object  # typings not needed
 
 
-class CompletedResult(TypedDict):
+class ScreenshotCompletedResult(TypedDict):
     marketName: str
     inspectLink: str
     state: Literal["COMPLETED"]

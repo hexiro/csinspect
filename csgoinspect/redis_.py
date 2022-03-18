@@ -5,11 +5,8 @@ from typing import TYPE_CHECKING, Any
 
 import redis
 
-from csgoinspect.exceptions import InvalidTweetError
-
 if TYPE_CHECKING:
-    from csgoinspect.typings import Tweet
-
+    from csgoinspect.tweet import Tweet
 
 class Redis:
     """A wrapper class around redis for cache database interactions"""
@@ -28,13 +25,8 @@ class Redis:
             db=self.REDIS_DATABASE
         )
 
-    def has_already_responded(self, tweet: Tweet) -> bool:
-        try:
-            status_id = tweet.id_str
-        except AttributeError as e:
-            raise InvalidTweetError("id_str") from e
-
-        tweet_value = self._redis.get(status_id)
+    def already_responded(self, tweet: Tweet) -> bool:
+        tweet_value = self._redis.get(tweet.id_str)
         return tweet_value is not None
 
     def store_tweet(self, tweet: Tweet, value: Any) -> None:

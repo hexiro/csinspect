@@ -16,12 +16,17 @@ class Tweet:
     """Represents an Item in a CS:GO inventory."""
     id: int
     text: str
+    has_photo: bool
     items: list[Item] = attrs.field(hash=False, default=attrs.Factory(list))
     _callback: Callback = attrs.field(repr=False, hash=False, init=False, default=None)
 
     @property
     def id_str(self) -> str:
         return str(self.id)
+
+    @property
+    def url(self) -> str:
+        return f"https://twitter.com/i/web/status/{self.id_str}"
 
     def assign_items(self, *items: Item):
         self.items.extend(items)

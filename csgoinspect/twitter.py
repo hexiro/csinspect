@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import re
-from collections import defaultdict
 from typing import TYPE_CHECKING
 
 import tweepy
@@ -45,12 +44,14 @@ class Twitter:
             except AttributeError as e:
                 raise InvalidTweetError("Twitter Status does not posses the valid attributes neeeded.") from e
 
+            has_photo: bool = hasattr(status, "extended_entities")
+
             # Twitter only allows 4 images
             matches: list[re.Match] = list(commons.INSPECT_URL_REGEX.finditer(text))
             matches = matches[:4]
 
             items = [Item(inspect_link=match.group()) for match in matches]
-            tweet = Tweet(id=_id, text=text, items=items)
+            tweet = Tweet(id=_id, text=text, has_photo=has_photo, items=items)
             for item in items:
                 item._tweet = tweet
             tweets.append(tweet)
