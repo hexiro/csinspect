@@ -36,7 +36,7 @@ class SwapGG:
         self.close()
 
     def __init__(self):
-        self.socket = socketio.Client()
+        self.socket = socketio.Client(handle_sigint=True)
         self.socket.connect("wss://market-ws.swap.gg")
 
         @self.socket.on("connect")

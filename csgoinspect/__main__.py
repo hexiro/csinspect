@@ -1,26 +1,13 @@
 from __future__ import annotations
 
 import logging
-import os
 from typing import TYPE_CHECKING
-
-from redis import Redis
 
 from csgoinspect.swapgg import SwapGG
 from csgoinspect.twitter import Twitter
 
 if TYPE_CHECKING:
     from csgoinspect.typings import Tweet
-    from csgoinspect.item import Item
-
-
-
-redis = Redis(
-    host=os.environ["REDIS_HOST"],
-    password=os.environ["REDIS_PASSWORD"],
-    port=int(os.environ["REDIS_PORT"]),
-    db=int(os.environ["REDIS_DATABASE"])
-)
 
 logger = logging.getLogger(__name__)
 
@@ -45,19 +32,24 @@ logger = logging.getLogger(__name__)
 # def tweet_to_url(tweet: tweepy.models.Status) -> str:
 #     return f"https://twitter.com/i/web/status/{tweet.id_str}"
 
+def tweet_callback(tweet: Tweet) -> None:
+    print(f"callback {tweet=}")
+
 
 def main() -> None:
     twitter = Twitter()
     swap_gg = SwapGG()
 
-    def callback(item: Item, tweet: Tweet) -> None:
-        print("callback")
-        print(f"{item=} {tweet=}")
-        swap_gg.close()
+    # TODO: use twitter stream
+    # https://docs.tweepy.org/en/v4.7.0/streaming.html#streaming
+    # https://docs.tweepy.org/en/v4.7.0/extended_tweets.html
 
-    for tweet, items in twitter.fetch_tweets().items():
-        for item in items:
-            item.register_callback(callback, tweet)
+    # TODO: construct Tweet dataclass as a wrapper around tweepy.models.Status
+    # TODO: and validate there instead of validating everytime a tweet is referenced
+
+    for tweet in twitter.fetch_tweets():
+        tweet.register_callback(tweet_callback)
+        for item in tweet.items:
             swap_gg.screenshot(item)
 
 

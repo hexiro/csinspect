@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import urllib.parse
-from typing import Optional, Callable, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 import attrs
 
@@ -9,7 +9,7 @@ from csgoinspect import commons
 from csgoinspect.exceptions import InvalidInspectLink
 
 if TYPE_CHECKING:
-    from csgoinspect.typings import Tweet
+    from csgoinspect.tweet import Tweet
 
 
 def _inspect_link_validator(value: str) -> None:
@@ -26,7 +26,6 @@ class Item:
     """Represents an Item in a CS:GO inventory."""
     _inspect_link: str = attrs.field(validator=inspect_link_validator)
     _image_link: Optional[str] = None
-    _callback: Callable[[Item, Tweet], None] = attrs.field(repr=False, hash=False, init=False, default=None)
     _tweet: Tweet = attrs.field(repr=False, hash=False, init=False, default=None)
 
     @property
@@ -45,15 +44,8 @@ class Item:
     @image_link.setter
     def image_link(self, value: str) -> None:
         self._image_link = value
-        self.execute_callback()
+        self._tweet.alert_item_updated()
 
     @property
     def unquoted_inspect_link(self) -> str:
         return urllib.parse.unquote_plus(self.inspect_link)
-
-    def register_callback(self, func: Callable, tweet: Tweet) -> None:
-        self._callback = func
-        self._tweet = tweet
-
-    def execute_callback(self) -> None:
-        self._callback(self, self._tweet)

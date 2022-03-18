@@ -8,10 +8,11 @@ from typing import TYPE_CHECKING
 import tweepy
 
 from csgoinspect import commons
+from csgoinspect.exceptions import InvalidTweetError
 from csgoinspect.item import Item
+from csgoinspect.tweet import Tweet
 
 if TYPE_CHECKING:
-    from csgoinspect.typings import Tweet
     import tweepy.models
 
 
@@ -28,23 +29,30 @@ class Twitter:
         authentication.set_access_token(self.TWITTER_ACCESS_TOKEN, self.TWITTER_ACCESS_TOKEN_SECRET)
         self._twitter = tweepy.API(authentication)
 
-    def fetch_tweets(self) -> dict[Tweet, list[Item]]:
-        inspect_link_tweets: dict[Tweet, list[Item]] = defaultdict(list)
+    def fetch_tweets(self) -> list[Tweet]:
+        tweets: list[Tweet] = []
         search_results: tweepy.models.SearchResults = self._twitter.search_tweets(
             q=commons.INSPECT_LINK_QUERY,
             result_type="recent",
             count=100,
             tweet_mode="extended",
         )
-        tweet: Tweet
-        for tweet in search_results:
-            text: str = tweet.full_text
+        status: tweepy.models.Status
+        for status in search_results:
+            try:
+                text: str = status.full_text
+                _id = status.id
+            except AttributeError as e:
+                raise InvalidTweetError("Twitter Status does not posses the valid attributes neeeded.") from e
 
             # Twitter only allows 4 images
             matches: list[re.Match] = list(commons.INSPECT_URL_REGEX.finditer(text))
             matches = matches[:4]
 
-            for match in matches:
-                inspect_link = Item(inspect_link=match.group())
-                inspect_link_tweets[tweet].append(inspect_link)
-        return inspect_link_tweets
+            items = [Item(inspect_link=match.group()) for match in matches]
+            tweet = Tweet(id=_id, text=text, items=items)
+            for item in items:
+                item._tweet = tweet
+            tweets.append(tweet)
+
+        return tweets

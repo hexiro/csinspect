@@ -4,6 +4,7 @@ import pathlib
 import dotenv
 import rich.logging
 
+
 logging.root.setLevel(logging.DEBUG)
 
 # hacky way of setting all other loggers to ERROR
@@ -16,6 +17,8 @@ rich_handler = rich.logging.RichHandler(omit_repeated_times=True, rich_traceback
 rich_handler.setLevel(logging.DEBUG)
 
 logging.root.addHandler(rich_handler)
+
+print("running")
 
 dotenv_path = pathlib.Path(__file__).parents[1] / ".env"
 dotenv.load_dotenv(dotenv_path)

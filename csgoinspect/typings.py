@@ -7,8 +7,6 @@ import tweepy.models
 if TYPE_CHECKING:
     from typing import TypedDict, Literal, TypeAlias
 
-Tweet: TypeAlias = tweepy.models.Status
-
 
 class SwapGGScreenshotResponse(TypedDict):
     time: int
