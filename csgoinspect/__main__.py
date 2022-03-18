@@ -1,24 +1,19 @@
 from __future__ import annotations
 
-import io
 import logging
 import os
-import pathlib
-import re
-from collections import defaultdict
+from typing import TYPE_CHECKING
 
-import dotenv
-import requests
-import tweepy
-import tweepy.models
 from redis import Redis
 
-from csgoinspect import swapgg
-from csgoinspect.constants import TWITTER_API_KEY, TWITTER_API_KEY_SECRET, TWITTER_ACCESS_TOKEN, \
-    TWITTER_ACCESS_TOKEN_SECRET, INSPECT_LINK_QUERY
+from csgoinspect.swapgg import SwapGG
+from csgoinspect.twitter import Twitter
 
-dotenv_path = pathlib.Path(__file__).parents[1] / ".env"
-dotenv.load_dotenv(dotenv_path)
+if TYPE_CHECKING:
+    from csgoinspect.typings import Tweet
+    from csgoinspect.item import Item
+
+
 
 redis = Redis(
     host=os.environ["REDIS_HOST"],
@@ -30,116 +25,40 @@ redis = Redis(
 logger = logging.getLogger(__name__)
 
 
-
-
-
-def already_has_screenshot(tweet: tweepy.models.Status) -> bool:
-    try:
-        if tweet.extended_entities["media"]:
-            return True
-    except (AttributeError, KeyError):
-        pass
-    return False
-
-
-def already_responded(tweet: tweepy.models.Status) -> bool:
-    try:
-        status_id = tweet.id_str
-    except AttributeError:
-        return True
-    return redis.get(status_id) is not None
-
-
-def tweet_to_url(tweet: tweepy.models.Status) -> str:
-    return f"https://twitter.com/i/web/status/{tweet.id_str}"
+# def already_has_screenshot(tweet: tweepy.models.Status) -> bool:
+#     try:
+#         if tweet.extended_entities["media"]:
+#             return True
+#     except (AttributeError, KeyError):
+#         pass
+#     return False
+#
+#
+# def already_responded(tweet: tweepy.models.Status) -> bool:
+#     try:
+#         status_id = tweet.id_str
+#     except AttributeError:
+#         return True
+#     return redis.get(status_id) is not None
+#
+#
+# def tweet_to_url(tweet: tweepy.models.Status) -> str:
+#     return f"https://twitter.com/i/web/status/{tweet.id_str}"
 
 
 def main() -> None:
-    try:
+    twitter = Twitter()
+    swap_gg = SwapGG()
 
-        tweets: dict[tweepy.models.Status, list[str]] = defaultdict(list)
+    def callback(item: Item, tweet: Tweet) -> None:
+        print("callback")
+        print(f"{item=} {tweet=}")
+        swap_gg.close()
 
-        for tweet in search_results:
-            logger.info(f"Analyzing inspect links in tweet: {tweet_to_url(tweet)}")
-            already_has_screenshot_result = already_has_screenshot(tweet)
-            already_responded_result = already_responded(tweet)
-            logger.debug(f"{already_has_screenshot_result=} {already_responded_result=}")
-            if already_has_screenshot_result:
-                logger.info("Skipping... (Tweet already contains image)")
-                continue
-            if already_responded_result:
-                logger.info("Skipping... (Already responded to tweet)")
-                continue
-
-            text: str = tweet.full_text
-
-            number_of_matches = 0
-            for match in INSPECT_URL_REGEX.finditer(text):
-                number_of_matches += 1
-                logging.debug(f"Found {number_of_matches} match: {match}")
-                if number_of_matches > 4:
-                    logger.debug("Skipping... (Over 4 matches)")
-                    break
-                inspect_link: str = match.group()
-                logger.info(f"Taking screenshot of inspect link: {inspect_link!r}")
-                swapgg.take_screenshot(inspect_link)
-                tweets[tweet].append(inspect_link)
-
-        for tweet, inspect_links in tweets.items():
-            logger.info(f"Fetching image links from inspect links in tweet: {tweet_to_url(tweet)}")
-            image_links: list[str] = []
-            for inspect_link in inspect_links:
-                image_link = swapgg.wait_for_screenshot(inspect_link)
-                logger.debug(f"{image_link=}")
-                if not image_link:
-                    logger.warning(f"Unable to fetch image_link from inspect link: {inspect_link}")
-                    continue
-                image_links.append(image_link)
-
-            if not image_links:
-                logger.warning("Couldn't get any image links")
-                continue
-
-            logger.info("Preparing Tweet...")
-
-            status_id: str = tweet.id_str
-            screen_name: str = tweet.user.screen_name
-
-            logger.debug(f"{status_id=} {screen_name=}")
-
-            if not status_id or not screen_name:
-                logger.warning("Skipping tweet as status_id or screen_name couldn't be fetched")
-                continue
-
-            media_uploads: list[tweepy.models.Media] = []
-
-            logger.info("Uploading image_links content to Twitter...")
-
-            for image_link in image_links:
-                logger.debug(f"Uploading content from {image_link} to Twitter")
-                screenshot = requests.get(image_link)
-                screenshot_file = io.BytesIO(screenshot.content)
-
-                media: tweepy.models.Media = twitter.media_upload(filename=image_link, file=screenshot_file)
-                media_uploads.append(media)
-
-            logger.debug(f"{media_uploads=}")
-
-            updated_status: tweepy.models.Status = twitter.update_status(
-                status=f"@{screen_name}",
-                in_reply_to_status_id=status_id,
-                media_ids=[media_upload.media_id for media_upload in media_uploads]
-            )
-
-            logger.debug(f"{updated_status=}")
-            logger.info("Successfully sent tweet!")
-
-            redis.set(name=status_id, value=updated_status.id_str, ex=60 * 60 * 24 * 7)
-
-        since_id = max(tweet.id for tweet in tweets)
-        redis.set("TWITTER_SINCE_ID", since_id)
-    finally:
-        swapgg.socket.disconnect()
+    for tweet, items in twitter.fetch_tweets().items():
+        for item in items:
+            item.register_callback(callback, tweet)
+            swap_gg.screenshot(item)
 
 
 if __name__ == "__main__":

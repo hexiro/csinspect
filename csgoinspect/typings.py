@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NewType
+from typing import TYPE_CHECKING
+
+import tweepy.models
 
 if TYPE_CHECKING:
-    from typing import TypedDict, Literal
+    from typing import TypedDict, Literal, TypeAlias
 
-
-InspectLink = NewType("InspectLink", str)
+Tweet: TypeAlias = tweepy.models.Status
 
 
 class SwapGGScreenshotResponse(TypedDict):
