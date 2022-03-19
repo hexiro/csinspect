@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Any
 import redis
 
 if TYPE_CHECKING:
-    from csgoinspect.tweet import Tweet
+    from csgoinspect.tweet import ItemsTweet
+
 
 class Redis:
     """A wrapper class around redis for cache database interactions"""
@@ -25,13 +26,13 @@ class Redis:
             db=self.REDIS_DATABASE
         )
 
-    def already_responded(self, tweet: Tweet) -> bool:
-        tweet_value = self._redis.get(tweet.id_str)
+    def already_responded(self, tweet: ItemsTweet) -> bool:
+        tweet_value = self._redis.get(str(tweet.id))
         return tweet_value is not None
 
-    def store_tweet(self, tweet: Tweet, value: Any) -> None:
+    def store_tweet(self, tweet: ItemsTweet, value: Any) -> None:
         """Signifies that a Tweet has been responded to, and is therefore stored"""
-        self._redis.set(name=tweet.id_str, value=value, ex=self.EX)
+        self._redis.set(name=str(tweet.id), value=value, ex=self.EX)
 
 
 if __name__ == "__main__":

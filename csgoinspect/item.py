@@ -9,7 +9,7 @@ from csgoinspect import commons
 from csgoinspect.exceptions import InvalidInspectLink
 
 if TYPE_CHECKING:
-    from csgoinspect.tweet import Tweet
+    from csgoinspect.tweet import ItemsTweet
 
 
 def _inspect_link_validator(value: str) -> None:
@@ -25,8 +25,8 @@ def inspect_link_validator(self: Item, attribute: attrs.Attribute, value: str) -
 class Item:
     """Represents an Item in a CS:GO inventory."""
     _inspect_link: str = attrs.field(validator=inspect_link_validator)
-    _image_link: Optional[str] = None
-    _tweet: Tweet = attrs.field(repr=False, hash=False, init=False, default=None)
+    _image_link: Optional[str] = attrs.field(hash=False, default=None)
+    _tweet: ItemsTweet = attrs.field(repr=False, hash=False, init=False, default=None)
 
     @property
     def inspect_link(self) -> str:

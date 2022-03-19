@@ -1,34 +1,29 @@
 from __future__ import annotations
 
+import io
 import logging
 from typing import TYPE_CHECKING
 
-import attrs
+import requests
+import tweepy.models
 
 if TYPE_CHECKING:
-    from csgoinspect.item import Item
     from csgoinspect.twitter import Twitter
+    from csgoinspect.item import Item
 
 logger = logging.getLogger(__name__)
 
 
-@attrs.define(slots=True, hash=True, frozen=False)
-class Tweet:
-    """Represents an Item in a CS:GO inventory."""
-    id: int
-    text: str
-    user_screen_name: str
-    has_photo: bool
-    items: list[Item] = attrs.field(hash=False)
-    _twitter: Twitter = attrs.field(repr=False, hash=False)
+class ItemsTweet(tweepy.Tweet):
+    """A Tweet that also contains data about CS:GO items."""
 
-    @property
-    def id_str(self) -> str:
-        return str(self.id)
+    def __init__(self, data):
+        super().__init__(data)
+        self.items: list[Item] = []
+        self._twitter: Twitter = None
 
-    @property
-    def url(self) -> str:
-        return f"https://twitter.com/i/web/status/{self.id_str}"
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} id={self.id!r} text={self.text!r} items={self.items!r}>"
 
     def assign_items(self, *items: Item):
         self.items.extend(items)
@@ -38,10 +33,16 @@ class Tweet:
             return
         self.reply()
 
-    def reply(self) -> None:
-        media_uploads = self._twitter.upload_items(self.items)
-        self._twitter._twitter.update_status(
-            status=f"@{self.user_screen_name}",
-            in_reply_to_status_id=self.id_str,
-            media_ids=[media_upload.media_id for media_upload in media_uploads]
-        )
+    def _upload_items(self) -> list[tweepy.models.Media]:
+        media_uploads: list[tweepy.models.Media] = []
+        for item in self.items:
+            screenshot = requests.get(item.image_link)
+            screenshot_file = io.BytesIO(screenshot.content)
+            media: tweepy.models.Media = self._twitter.media_upload(filename=item.image_link, file=screenshot_file)
+            media_uploads.append(media)
+        return media_uploads
+
+    def reply(self):
+        media_uploads = self._upload_items()
+        media_ids = [media.media_id for media in media_uploads]
+        self._twitter.create_tweet(in_reply_to_tweet_id=self.id, media_ids=media_ids)
