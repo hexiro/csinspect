@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import io
 import os
 import re
 from typing import TYPE_CHECKING
 
+import requests
 import tweepy
 
 from csgoinspect import commons
@@ -39,10 +41,11 @@ class Twitter:
         status: tweepy.models.Status
         for status in search_results:
             try:
-                text: str = status.full_text
                 _id = status.id
+                text: str = status.full_text
+                user_screen_name: str = status.user.screen_name
             except AttributeError as e:
-                raise InvalidTweetError("Twitter Status does not posses the valid attributes neeeded.") from e
+                raise InvalidTweetError("Twitter Status does not posses the valid attributes needed.") from e
 
             has_photo: bool = hasattr(status, "extended_entities")
 
@@ -51,9 +54,18 @@ class Twitter:
             matches = matches[:4]
 
             items = [Item(inspect_link=match.group()) for match in matches]
-            tweet = Tweet(id=_id, text=text, has_photo=has_photo, items=items)
+            tweet = Tweet(id=_id, text=text, user_screen_name=user_screen_name, has_photo=has_photo, items=items, twitter=self)
             for item in items:
                 item._tweet = tweet
             tweets.append(tweet)
 
         return tweets
+
+    def upload_items(self, items: list[Item]) -> list[tweepy.models.Media]:
+        media_uploads: list[tweepy.models.Media] = []
+        for item in items:
+            screenshot = requests.get(item.image_link)
+            screenshot_file = io.BytesIO(screenshot.content)
+            media: tweepy.models.Media = self._twitter.media_upload(filename=item.image_link, file=screenshot_file)
+            media_uploads.append(media)
+        return media_uploads

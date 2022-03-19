@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import attrs
 
 if TYPE_CHECKING:
     from csgoinspect.item import Item
-    from typing import Callable, TypeAlias
+    from csgoinspect.twitter import Twitter
 
-    Callback: TypeAlias = Callable[["Tweet"], None]
+logger = logging.getLogger(__name__)
 
 
 @attrs.define(slots=True, hash=True, frozen=False)
@@ -16,9 +17,10 @@ class Tweet:
     """Represents an Item in a CS:GO inventory."""
     id: int
     text: str
+    user_screen_name: str
     has_photo: bool
-    items: list[Item] = attrs.field(hash=False, default=attrs.Factory(list))
-    _callback: Callback = attrs.field(repr=False, hash=False, init=False, default=None)
+    items: list[Item] = attrs.field(hash=False)
+    _twitter: Twitter = attrs.field(repr=False, hash=False)
 
     @property
     def id_str(self) -> str:
@@ -31,10 +33,15 @@ class Tweet:
     def assign_items(self, *items: Item):
         self.items.extend(items)
 
-    def register_callback(self, callback: Callback) -> None:
-        self._callback = callback
-
     def alert_item_updated(self) -> None:
         if not all(i.image_link for i in self.items):
             return
-        self._callback(self)
+        self.reply()
+
+    def reply(self) -> None:
+        media_uploads = self._twitter.upload_items(self.items)
+        self._twitter._twitter.update_status(
+            status=f"@{self.user_screen_name}",
+            in_reply_to_status_id=self.id_str,
+            media_ids=[media_upload.media_id for media_upload in media_uploads]
+        )

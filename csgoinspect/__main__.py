@@ -1,20 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
 from csgoinspect.redis_ import Redis
 from csgoinspect.swapgg import SwapGG
 from csgoinspect.twitter import Twitter
 
-if TYPE_CHECKING:
-    from csgoinspect.tweet import Tweet
-
 logger = logging.getLogger(__name__)
-
-
-def tweet_callback(tweet: Tweet) -> None:
-    print(f"callback {tweet.url} {tweet=}")
 
 
 def main() -> None:
@@ -34,7 +26,6 @@ def main() -> None:
         if redis.already_responded(tweet):
             print("already responded to:", tweet)
             continue
-        tweet.register_callback(tweet_callback)
         for item in tweet.items:
             swap_gg.screenshot(item)
 
