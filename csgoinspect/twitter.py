@@ -1,22 +1,24 @@
 from __future__ import annotations
 
+import logging
 import time
 from typing import re
 
 import tweepy.models
 
 from csgoinspect.commons import TWITTER_BEARER_TOKEN, TWITTER_API_KEY, TWITTER_API_KEY_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET, \
-    INSPECT_URL_REGEX
+    INSPECT_URL_REGEX, LIVE_RULES, INSPECT_LINK_QUERY
 from csgoinspect.item import Item
 from csgoinspect.tweet import ItemsTweet
 
+logger = logging.getLogger(__name__)
 
 class Twitter(tweepy.Client):
     """Merged wrapper of v1, v2, and Streaming APIs provided by Tweepy."""
-    rules = [
-        tweepy.StreamRule('"+csgo_econ_action_preview"', tag="+csgo_econ_action_preview'"),
-        tweepy.StreamRule('"steam://rungame/730"', tag="steam://rungame/730"),
-    ]
+
+    TWEET_EXPANSIONS = ["referenced_tweets.id", "author_id", "referenced_tweets.id.author_id", "attachments.media_keys"]
+    TWEET_TWEET_FIELDS = ["id", "text", "attachments"]
+    TWEET_USER_FIELDS = ["id", "name", "username"]
 
     def __init__(self):
         super().__init__(
@@ -36,49 +38,76 @@ class Twitter(tweepy.Client):
         ))
 
         self._live_twitter = tweepy.StreamingClient(TWITTER_BEARER_TOKEN)
-        self._live_twitter.add_rules(self.rules)
-        self._live_twitter.on_tweet = self.on_tweet
+        self._live_twitter.add_rules(LIVE_RULES)
         self._live_twitter.on_connect = self.on_connect
         self._live_twitter.on_disconnect = self.on_disconnect
+        self._live_twitter.on_tweet = self.on_tweet
+
+    @staticmethod
+    def on_connect():
+        logger.debug("connected!")
+
+    @staticmethod
+    def on_disconnect():
+        logger.error("disconnected from Twitter :(")
 
     def on_tweet(self, tweet: tweepy.Tweet):
-        print(f"{tweet=}")
-        # Twitter only allows 4 images
-        matches: list[re.Match] = list(INSPECT_URL_REGEX.finditer(tweet.text))
-        matches = matches[:4]
-        if not matches:
+        items_tweet = self._tweet_to_items_tweet(tweet)
+        if not items_tweet:
             return
-        items = [Item(inspect_link=match.group()) for match in matches]
-        items_tweet = ItemsTweet(tweet.data)
-        items_tweet.assign_items(*items)
-        for item in items:
-            item._tweet = items_tweet
-        items_tweet._twitter = self
         self._items_tweets.append(items_tweet)
-
-    def on_connect(self):
-        print("connected!")
-
-    def on_disconnect(self):
-        print("disconnected :(")
 
     def live(self):
         if not self._live_twitter.running:
             self._start()
         while True:
             if self._items_tweets:
-                yield self._items_tweets.pop(0)
-            time.sleep(1)
+                items_tweet = self._items_tweets.pop(0)
+                logger.info(f"received new tweet: {items_tweet!r}")
+                yield items_tweet
+            time.sleep(10)
+
+    def _tweet_to_items_tweet(self, tweet: tweepy.Tweet) -> ItemsTweet | None:
+        # Twitter only allows 4 images
+        matches: list[re.Match] = list(INSPECT_URL_REGEX.finditer(tweet.text))
+        matches = matches[:4]
+        if not matches:
+            logger.debug(f"tweet: {tweet} -- has no inspect link matches")
+            return None
+        if tweet.attachments:
+            # potentially already has screenshot (this conditional could be subject to change)
+            logger.debug(f"tweet: {tweet} -- tweet has attachments")
+            return None
+        items = [Item(inspect_link=match.group()) for match in matches]
+        items_tweet = ItemsTweet(tweet.data)
+        items_tweet.assign_items(*items)
+        for item in items:
+            item._tweet = items_tweet
+        items_tweet._twitter = self
+        return items_tweet
+
+    def find_tweets(self) -> list[ItemsTweet]:
+        search_results: tweepy.Response = self.search_recent_tweets(
+            query=INSPECT_LINK_QUERY,
+            expansions=self.TWEET_EXPANSIONS,
+            tweet_fields=self.TWEET_TWEET_FIELDS,
+            user_fields=self.TWEET_USER_FIELDS,
+        )
+        tweets: list[tweepy.Tweet] = search_results.data
+        items_tweets: list[ItemsTweet] = []
+        for tweet in tweets:
+            items_tweet = self._tweet_to_items_tweet(tweet)
+            if not items_tweet:
+                continue
+            items_tweets.append(items_tweet)
+        return items_tweets
 
     def _start(self):
-        expansions = ["referenced_tweets.id", "author_id", "referenced_tweets.id.author_id", "attachments.media_keys"]
-        tweet_fields = ["id", "text", "attachments"]
-        user_fields = ["id", "name", "username"]
 
         self._live_twitter.filter(
-            expansions=expansions,
-            tweet_fields=tweet_fields,
-            user_fields=user_fields,
+            expansions=self.TWEET_EXPANSIONS,
+            tweet_fields=self.TWEET_TWEET_FIELDS,
+            user_fields=self.TWEET_USER_FIELDS,
             threaded=True
         )
 

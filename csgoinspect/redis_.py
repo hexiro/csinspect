@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import logging
 import os
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import redis
 
 if TYPE_CHECKING:
     from csgoinspect.tweet import ItemsTweet
+
+logger = logging.getLogger(__name__)
 
 
 class Redis:
@@ -28,11 +32,15 @@ class Redis:
 
     def already_responded(self, tweet: ItemsTweet) -> bool:
         tweet_value = self._redis.get(str(tweet.id))
-        return tweet_value is not None
+        has_already_responded = tweet_value is not None
+        if has_already_responded:
+            logger.debug(f"already responded -- tweet: {tweet}")
+        return has_already_responded
 
-    def store_tweet(self, tweet: ItemsTweet, value: Any) -> None:
+    def store_tweet(self, tweet: ItemsTweet) -> None:
         """Signifies that a Tweet has been responded to, and is therefore stored"""
-        self._redis.set(name=str(tweet.id), value=value, ex=self.EX)
+        logger.debug(f"storing tweet data in redis for tweet: {tweet!r}")
+        self._redis.set(name=str(tweet.id), value=datetime.now().isoformat(), ex=self.EX)
 
 
 if __name__ == "__main__":

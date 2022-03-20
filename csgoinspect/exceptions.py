@@ -1,4 +1,5 @@
 """Custom CS:GO Inspect exception classes"""
+from __future__ import annotations
 
 
 class CSGOInspectError(Exception):

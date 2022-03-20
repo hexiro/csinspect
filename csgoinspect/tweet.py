@@ -29,7 +29,9 @@ class ItemsTweet(tweepy.Tweet):
         self.items.extend(items)
 
     def alert_item_updated(self) -> None:
+        logger.debug("alerted of item update")
         if not all(i.image_link for i in self.items):
+            logger.debug("not replying")
             return
         self.reply()
 
@@ -43,6 +45,7 @@ class ItemsTweet(tweepy.Tweet):
         return media_uploads
 
     def reply(self):
+        logger.debug("replying")
         media_uploads = self._upload_items()
         media_ids = [media.media_id for media in media_uploads]
         self._twitter.create_tweet(in_reply_to_tweet_id=self.id, media_ids=media_ids)
