@@ -7,6 +7,8 @@ import requests
 import tweepy.models
 from loguru import logger
 
+from csgoinspect import redis_
+
 if TYPE_CHECKING:
     from csgoinspect.twitter import Twitter
     from csgoinspect.item import Item
@@ -18,7 +20,7 @@ class ItemsTweet(tweepy.Tweet):
     def __init__(self, data):
         super().__init__(data)
         self.items: list[Item] = []
-        self._twitter: Twitter = None
+        self._twitter: Twitter | None = None
 
     def __str__(self):
         return repr(self)
@@ -54,3 +56,4 @@ class ItemsTweet(tweepy.Tweet):
         media_uploads = self._upload_items()
         media_ids = [media.media_id for media in media_uploads]
         self._twitter.create_tweet(in_reply_to_tweet_id=self.id, media_ids=media_ids)
+        redis_.store_tweet(self)

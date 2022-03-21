@@ -6,6 +6,7 @@ from typing import re
 import tweepy.models
 from loguru import logger
 
+from csgoinspect import redis_
 from csgoinspect.commons import TWITTER_BEARER_TOKEN, TWITTER_API_KEY, TWITTER_API_KEY_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET, \
     INSPECT_URL_REGEX, LIVE_RULES, INSPECT_LINK_QUERY, TWEET_EXPANSIONS, TWEET_TWEET_FIELDS, TWEET_USER_FIELDS
 from csgoinspect.item import Item
@@ -93,6 +94,8 @@ class Twitter(tweepy.Client):
         for tweet in tweets:
             items_tweet = self._tweet_to_items_tweet(tweet)
             if not items_tweet:
+                continue
+            if redis_.already_responded(items_tweet):
                 continue
             items_tweets.append(items_tweet)
         return items_tweets

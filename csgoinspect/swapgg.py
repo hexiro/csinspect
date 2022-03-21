@@ -27,12 +27,6 @@ class SwapGG:
     }
     screenshots: dict[Item, ScreenshotState] = {}
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
     def __init__(self):
         self.socket = socketio.Client(handle_sigint=True)
         self.socket.connect("wss://market-ws.swap.gg")
