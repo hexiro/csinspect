@@ -8,6 +8,7 @@ import tweepy.models
 from loguru import logger
 
 from csgoinspect import redis_
+from csgoinspect.typings import ItemScreenshotState
 
 if TYPE_CHECKING:
     from csgoinspect.twitter import Twitter
@@ -37,7 +38,7 @@ class ItemsTweet(tweepy.Tweet):
 
     def alert_item_updated(self) -> None:
         logger.debug("alerted of item update")
-        if not all(i.image_link for i in self.items):
+        if any(i.state != ItemScreenshotState.FINISHED for i in self.items):
             logger.debug("not replying")
             return
         self.reply()
@@ -45,6 +46,8 @@ class ItemsTweet(tweepy.Tweet):
     def _upload_items(self) -> list[tweepy.models.Media]:
         media_uploads: list[tweepy.models.Media] = []
         for item in self.items:
+            if not item.image_link:
+                continue
             screenshot = requests.get(item.image_link)
             screenshot_file = io.BytesIO(screenshot.content)
             media: tweepy.models.Media = self._twitter.media_upload(filename=item.image_link, file=screenshot_file)
