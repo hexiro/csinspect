@@ -103,9 +103,9 @@ class Twitter(tweepy.Client):
     def _start(self):
         logger.debug("connected to live twitter")
         self._live_twitter.filter(
-            expansions=self.TWEET_EXPANSIONS,
-            tweet_fields=self.TWEET_TWEET_FIELDS,
-            user_fields=self.TWEET_USER_FIELDS,
+            expansions=TWEET_EXPANSIONS,
+            tweet_fields=TWEET_TWEET_FIELDS,
+            user_fields=TWEET_USER_FIELDS,
             threaded=True
         )
 

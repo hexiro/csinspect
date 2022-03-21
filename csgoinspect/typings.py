@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from enum import Enum, auto
 from typing import TYPE_CHECKING
+from typing import TypedDict
 
 if TYPE_CHECKING:
-    from typing import TypedDict, Literal
+    from typing import Literal
 
 
 class ItemScreenshotState(Enum):
     INCOMPLETE = auto()  # hasn't started or waiting
-    FINISHED = auto()    # finished or failed to fetch
+    FINISHED = auto()  # finished or failed to fetch
 
 
 class SwapGGScreenshotResponse(TypedDict):

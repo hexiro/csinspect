@@ -16,12 +16,12 @@ class Item:
     inspect_link: str
     image_link: str | None = field(hash=False, default=None)
     state: ItemScreenshotState = field(hash=False, init=False, compare=False, default=ItemScreenshotState.INCOMPLETE)
-    tweet: ItemsTweet = field(repr=False, hash=False, init=False, compare=False, default=None)
+    _tweet: ItemsTweet = field(repr=False, hash=False, init=False, compare=False, default=None)
 
     def set_image_link(self, value: str) -> None:
         self.image_link = value
         self.trigger_finished()
-        self.tweet.alert_item_updated()
+        self._tweet.alert_item_updated()
 
     def trigger_start(self) -> None:
         self.state = ItemScreenshotState.INCOMPLETE
