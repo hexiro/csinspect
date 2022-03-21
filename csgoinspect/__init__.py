@@ -1,16 +1,30 @@
-import logging
+from __future__ import annotations
 
-import rich.logging
+import pathlib
+import sys
+from datetime import datetime
 
-logging.root.setLevel(logging.DEBUG)
+import dotenv
+from loguru import logger
 
-# hacky way of setting all other loggers to ERROR
-# there's probably a better way to do this.
+parent_directory = pathlib.Path(__file__).parents[1]
+dotenv_path = parent_directory / ".env"
+dotenv.load_dotenv(dotenv_path)
 
-for key in logging.Logger.manager.loggerDict:
-    logging.getLogger(key).setLevel(logging.ERROR)
+logs = parent_directory / "logs"
+logs.mkdir(exist_ok=True)
 
-rich_handler = rich.logging.RichHandler(omit_repeated_times=True, rich_tracebacks=True)
-rich_handler.setLevel(logging.DEBUG)
+time_format = "<red>[{time:MM-DD-YY h:mm:ss A}]</red>"
+level_format = "<level>{level: <8}</level>"
+name_format = "<cyan>{name}</cyan>"
+line_format = "<blue>{line}</blue>"
+message_format = "<bold>{message}</bold>"
+log_format = f"{time_format} {level_format}| {name_format}:{line_format} | {message_format}"
 
-logging.root.addHandler(rich_handler)
+config = {
+    "handlers": [
+        {"sink": sys.stdout, "format": log_format, "level": "DEBUG"},
+        {"sink": f"{logs}/{datetime.now():%Y-%m-%d}.log", "rotation": "1 day", "format": log_format, "level": "DEBUG"}
+    ]
+}
+logger.configure(**config)

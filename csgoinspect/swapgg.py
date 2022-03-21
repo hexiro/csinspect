@@ -1,93 +1,83 @@
 from __future__ import annotations
 
-import logging
-import time
-from typing import TYPE_CHECKING, Literal, Type
+from typing import TYPE_CHECKING
 
 import requests
 import socketio
+from loguru import logger
 
 if TYPE_CHECKING:
-    from csgoinspect.datatypes import SwapGGScreenshotResponse, ScreenshotReady
+    from csgoinspect.typings import SwapGGScreenshotResponse, ScreenshotReady
+    from csgoinspect.item import Item
 
-
-class INVALID:
-    pass
-
-
-
-socket = socketio.Client()
-logger = logging.getLogger(__name__)
-screenshots: dict[str, str | None | Type[INVALID]] = {}
-
-
-def modify_inspect_link(inspect_link: str) -> str:
-    return inspect_link.replace("+", " ").replace("%20", " ")
-
-
-def take_screenshot(inspect_link: str) -> None:
-    inspect_link = modify_inspect_link(inspect_link)
-    screenshots[inspect_link] = None
-    headers = {
-        "accept": "application/json, text/plain, */*",
-        "accept-language": "en-US,en;q=0.9",
-        "referer": "https://market.swap.gg/",
-        "referrer-policy": "strict-origin-when-cross-origin",
-    }
-    payload = {
-        "inspectLink": inspect_link
-    }
-
-    logger.debug(f"Requesting screenshot for inspect link: {inspect_link}")
-    try:
-        response = requests.post("https://market-api.swap.gg/v1/screenshot", headers=headers, json=payload)
-        data: SwapGGScreenshotResponse = response.json()
-    except requests.RequestException:
-        logger.warning("Failed to receive response")
-        screenshots[inspect_link] = INVALID
-
-    try:
-        if data["status"] != "OK":
-            logging.warning("Failed to request screenshot")
-            screenshots[inspect_link] = INVALID
-            return
-        if data["result"]["state"] == "COMPLETED":
-            logger.debug("screenshot already taken!")
-            image_link: str = data["result"]["imageLink"]
-            screenshots[inspect_link] = image_link
-            return
-    except KeyError:
-        logger.warning("Failed to parse response")
-        logger.debug(f"{data=}")
-        screenshots[inspect_link] = INVALID
-
-
-def wait_for_screenshot(inspect_link: str) -> str | None:
-    inspect_link = modify_inspect_link(inspect_link)
-    image_link: str | None | Type[INVALID] = screenshots.get(inspect_link)
-    if image_link is INVALID:
-        return
-    if image_link:
-        return image_link
-    while not image_link:
-        image_link = screenshots.get(inspect_link)
-        time.sleep(1)
-    return image_link
+headers = {
+    "Accept": "application/json",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://market.swap.gg/",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+}
+screenshot_queue: list[Item] = []
+socket = socketio.Client(handle_sigint=True)
 
 
 @socket.on("connect")
 def on_connect():
-    logger.debug("connected to swap.gg socket.io websocket")
+    logger.debug("connected to swap.gg websocket")
+
+
+@socket.on("disconnect")
+def on_disconnect():
+    logger.warning("disconnected from swap.gg websocket")
+
+
+def find_item(unquoted_inspect_link: str) -> Item | None:
+    for item in screenshot_queue:
+        if item.unquoted_inspect_link == unquoted_inspect_link:
+            return item
+    return None
 
 
 @socket.on("screenshot:ready")
-def on_message(data: ScreenshotReady):
-    logger.debug(f"SCREENSHOT:READY {data}")
-    inspect_link = data["inspectLink"]
+def on_screenshot(data: ScreenshotReady):
+    unquoted_inspect_link = data["inspectLink"]
     image_link = data["imageLink"]
-    if inspect_link in screenshots:
-        logger.debug("screenshot data saved!")
-        screenshots[inspect_link] = image_link
+
+    if item := find_item(unquoted_inspect_link):
+        logger.debug(f"saved image link for item: {item}")
+        item.set_image_link(image_link)
+        screenshot_queue.remove(item)
+    else:
+        logger.debug(f"received image_link for item with inspect_link: {unquoted_inspect_link}")
 
 
-socket.connect('wss://market-ws.swap.gg')
+def screenshot(item: Item) -> None:
+    payload = {
+        "inspectLink": item.unquoted_inspect_link
+    }
+
+    logger.debug(f"requesting screenshot for item: {item}")
+    logger.debug(f"payload: {payload}")
+
+    try:
+        response = requests.post("https://market-api.swap.gg/v1/screenshot", headers=headers, json=payload)
+        data: SwapGGScreenshotResponse = response.json()
+    except requests.RequestException:
+        logger.warning(f"Failed to receive response for item: {item}")
+        return
+
+    if data["status"] != "OK":
+        logger.warning(f"Failed to request screenshot for item: {item}")
+        item.trigger_finished()
+    elif data["result"]["state"] == "COMPLETED":
+        logger.debug(f"screenshot already taken for item: {item}")
+        item.set_image_link(data["result"]["imageLink"])
+    else:
+        logger.debug(f"screenshotting -- inspect link: {item.unquoted_inspect_link}")
+        screenshot_queue.append(item)
+
+
+def disconnect():
+    socket.disconnect()
+
+
+socket.connect("wss://market-ws.swap.gg")
