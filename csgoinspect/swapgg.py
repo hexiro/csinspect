@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import logging
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Optional
 
 import requests
 import socketio
+from loguru import logger
 
 if TYPE_CHECKING:
     from csgoinspect.typings import SwapGGScreenshotResponse, ScreenshotReady
     from csgoinspect.item import Item
-
-logger = logging.getLogger(__name__)
 
 
 class ScreenshotState(Enum):
@@ -43,26 +41,31 @@ class SwapGG:
         def on_connect():
             self.on_connect()
 
+        @self.socket.on("disconnect")
+        def on_disconnect():
+            self.on_disconnect()
+
         @self.socket.on("screenshot:ready")
         def on_screenshot(data: ScreenshotReady):
             self.on_screenshot(data)
 
     @staticmethod
     def on_connect():
-        logger.debug("connected to swap.gg socket.io websocket")
+        logger.debug("connected to swap.gg websocket")
+
+    @staticmethod
+    def on_disconnect():
+        logger.warning("disconnected from swap.gg websocket")
 
     def on_screenshot(self, data: ScreenshotReady):
-        # logger.debug(f"SCREENSHOT:READY {data}")
-
         unquoted_inspect_link = data["inspectLink"]
         image_link = data["imageLink"]
 
         if item := self.find_item(unquoted_inspect_link):
-            logger.debug(f"screenshot:ready for item: {item}")
             logger.debug(f"saved image link for item: {item}")
             item.image_link = image_link
         else:
-            logger.debug(f"can't find item with inspect_link: {unquoted_inspect_link}")
+            logger.debug(f"received image_link for item with inspect_link: {unquoted_inspect_link}")
 
     def find_item(self, unquoted_inspect_link: str) -> Optional[Item]:
         for item in self.screenshots:
@@ -76,7 +79,7 @@ class SwapGG:
         }
 
         logger.debug(f"requesting screenshot for item: {item}")
-        logging.debug(f"payload: {payload}")
+        logger.debug(f"payload: {payload}")
 
         try:
             response = requests.post("https://market-api.swap.gg/v1/screenshot", headers=self.headers, json=payload)
@@ -87,7 +90,7 @@ class SwapGG:
             return
 
         if data["status"] != "OK":
-            logging.warning(f"Failed to request screenshot for item: {item}")
+            logger.warning(f"Failed to request screenshot for item: {item}")
             self.screenshots[item] = ScreenshotState.INVALID
         elif data["result"]["state"] == "COMPLETED":
             logger.debug(f"screenshot already taken for item: {item}")

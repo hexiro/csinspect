@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import io
-import logging
 from typing import TYPE_CHECKING
 
 import requests
 import tweepy.models
+from loguru import logger
 
 if TYPE_CHECKING:
     from csgoinspect.twitter import Twitter
     from csgoinspect.item import Item
-
-logger = logging.getLogger(__name__)
 
 
 class ItemsTweet(tweepy.Tweet):
@@ -22,8 +20,15 @@ class ItemsTweet(tweepy.Tweet):
         self.items: list[Item] = []
         self._twitter: Twitter = None
 
+    def __str__(self):
+        return repr(self)
+
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} id={self.id!r} text={self.text!r} items={self.items!r}>"
+        return f"<{self.__class__.__name__} id={self.id!r} url={self.url!r} items={self.items!r}>"
+
+    @property
+    def url(self) -> str:
+        return f"https://twitter.com/i/web/status/{self.id}"
 
     def assign_items(self, *items: Item):
         self.items.extend(items)
@@ -45,7 +50,7 @@ class ItemsTweet(tweepy.Tweet):
         return media_uploads
 
     def reply(self):
-        logger.debug("replying")
+        logger.success(f"replying to tweet: {self!r}")
         media_uploads = self._upload_items()
         media_ids = [media.media_id for media in media_uploads]
         self._twitter.create_tweet(in_reply_to_tweet_id=self.id, media_ids=media_ids)

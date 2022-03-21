@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import logging
 import time
 from typing import re
 
 import tweepy.models
+from loguru import logger
 
 from csgoinspect.commons import TWITTER_BEARER_TOKEN, TWITTER_API_KEY, TWITTER_API_KEY_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET, \
     INSPECT_URL_REGEX, LIVE_RULES, INSPECT_LINK_QUERY
 from csgoinspect.item import Item
 from csgoinspect.tweet import ItemsTweet
 
-logger = logging.getLogger(__name__)
 
 class Twitter(tweepy.Client):
     """Merged wrapper of v1, v2, and Streaming APIs provided by Tweepy."""
@@ -49,7 +48,7 @@ class Twitter(tweepy.Client):
 
     @staticmethod
     def on_disconnect():
-        logger.error("disconnected from Twitter :(")
+        logger.warning("disconnected from Twitter :(")
 
     def on_tweet(self, tweet: tweepy.Tweet):
         items_tweet = self._tweet_to_items_tweet(tweet)
@@ -58,9 +57,9 @@ class Twitter(tweepy.Client):
         self._items_tweets.append(items_tweet)
 
     def live(self):
-        if not self._live_twitter.running:
-            self._start()
         while True:
+            if not self._live_twitter.running:
+                self._start()
             if self._items_tweets:
                 items_tweet = self._items_tweets.pop(0)
                 logger.info(f"received new tweet: {items_tweet!r}")
@@ -72,11 +71,11 @@ class Twitter(tweepy.Client):
         matches: list[re.Match] = list(INSPECT_URL_REGEX.finditer(tweet.text))
         matches = matches[:4]
         if not matches:
-            logger.debug(f"tweet: {tweet} -- has no inspect link matches")
+            logger.debug(f"tweet has no inspect link matches -- tweet: {tweet!r}")
             return None
         if tweet.attachments:
             # potentially already has screenshot (this conditional could be subject to change)
-            logger.debug(f"tweet: {tweet} -- tweet has attachments")
+            logger.debug(f"tweet has attachments -- tweet: {tweet!r}")
             return None
         items = [Item(inspect_link=match.group()) for match in matches]
         items_tweet = ItemsTweet(tweet.data)
@@ -103,7 +102,7 @@ class Twitter(tweepy.Client):
         return items_tweets
 
     def _start(self):
-
+        logger.debug("connected to live twitter")
         self._live_twitter.filter(
             expansions=self.TWEET_EXPANSIONS,
             tweet_fields=self.TWEET_TWEET_FIELDS,

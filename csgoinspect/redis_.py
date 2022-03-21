@@ -1,33 +1,28 @@
 from __future__ import annotations
 
-import logging
-import os
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import redis
+from loguru import logger
+
+from csgoinspect.commons import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DATABASE
 
 if TYPE_CHECKING:
     from csgoinspect.tweet import ItemsTweet
 
-logger = logging.getLogger(__name__)
-
 
 class Redis:
     """A wrapper class around redis for cache database interactions"""
-    REDIS_HOST = os.environ["REDIS_HOST"]
-    REDIS_PASSWORD = os.environ["REDIS_PASSWORD"]
-    REDIS_PORT = int(os.environ["REDIS_PORT"])
-    REDIS_DATABASE = int(os.environ["REDIS_DATABASE"])
 
     EX = 60 * 60 * 24 * 30  # month
 
     def __init__(self):
         self._redis = redis.Redis(
-            host=self.REDIS_HOST,
-            password=self.REDIS_PASSWORD,
-            port=self.REDIS_PORT,
-            db=self.REDIS_DATABASE
+            host=REDIS_HOST,
+            password=REDIS_PASSWORD,
+            port=REDIS_PORT,
+            db=REDIS_DATABASE
         )
 
     def already_responded(self, tweet: ItemsTweet) -> bool:

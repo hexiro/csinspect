@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import logging
+from loguru import logger
 
 from csgoinspect.redis_ import Redis
 from csgoinspect.swapgg import SwapGG
 from csgoinspect.twitter import Twitter
-
-logger = logging.getLogger(__name__)
 
 
 def main() -> None:
@@ -16,16 +14,18 @@ def main() -> None:
     try:
         # TODO: improve redis handling
         # TODO: FIND TWEETS VIA INVENTORY LINK
+        # TODO: move away from attrs
         # TODO: async?
-
         for tweet in twitter.find_tweets():
             if redis.already_responded(tweet):
                 continue
+            logger.info(f"handling tweet: {tweet!r}")
             for item in tweet.items:
                 swap_gg.screenshot(item)
             redis.store_tweet(tweet)
 
         for tweet in twitter.live():
+            logger.info(f"handling tweet: {tweet!r}")
             for item in tweet.items:
                 swap_gg.screenshot(item)
             redis.store_tweet(tweet)
