@@ -7,17 +7,13 @@ import tweepy.models
 from loguru import logger
 
 from csgoinspect.commons import TWITTER_BEARER_TOKEN, TWITTER_API_KEY, TWITTER_API_KEY_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET, \
-    INSPECT_URL_REGEX, LIVE_RULES, INSPECT_LINK_QUERY
+    INSPECT_URL_REGEX, LIVE_RULES, INSPECT_LINK_QUERY, TWEET_EXPANSIONS, TWEET_TWEET_FIELDS, TWEET_USER_FIELDS
 from csgoinspect.item import Item
 from csgoinspect.tweet import ItemsTweet
 
 
 class Twitter(tweepy.Client):
     """Merged wrapper of v1, v2, and Streaming APIs provided by Tweepy."""
-
-    TWEET_EXPANSIONS = ["referenced_tweets.id", "author_id", "referenced_tweets.id.author_id", "attachments.media_keys"]
-    TWEET_TWEET_FIELDS = ["id", "text", "attachments"]
-    TWEET_USER_FIELDS = ["id", "name", "username"]
 
     def __init__(self):
         super().__init__(
@@ -88,9 +84,9 @@ class Twitter(tweepy.Client):
     def find_tweets(self) -> list[ItemsTweet]:
         search_results: tweepy.Response = self.search_recent_tweets(
             query=INSPECT_LINK_QUERY,
-            expansions=self.TWEET_EXPANSIONS,
-            tweet_fields=self.TWEET_TWEET_FIELDS,
-            user_fields=self.TWEET_USER_FIELDS,
+            expansions=TWEET_EXPANSIONS,
+            tweet_fields=TWEET_TWEET_FIELDS,
+            user_fields=TWEET_USER_FIELDS,
         )
         tweets: list[tweepy.Tweet] = search_results.data
         items_tweets: list[ItemsTweet] = []

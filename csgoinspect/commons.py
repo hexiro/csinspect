@@ -14,6 +14,10 @@ INSPECT_URL_REGEX = re.compile(
     "(steam://rungame/730/[0-9]+/(?:\\+| )csgo_econ_action_preview(?:%20| ))(?:(?P<S>S[0-9]+)|(?P<M>M[0-9]+))(?P<A>A[0-9]+)(?P<D>D[0-9]+)"
 )
 
+TWEET_EXPANSIONS = ["referenced_tweets.id", "author_id", "referenced_tweets.id.author_id", "attachments.media_keys"]
+TWEET_TWEET_FIELDS = ["id", "text", "attachments"]
+TWEET_USER_FIELDS = ["id", "name", "username"]
+
 TWITTER_BEARER_TOKEN = os.environ["TWITTER_BEARER_TOKEN"]
 TWITTER_API_KEY = os.environ["TWITTER_API_KEY"]
 TWITTER_API_KEY_SECRET = os.environ["TWITTER_API_KEY_SECRET"]
