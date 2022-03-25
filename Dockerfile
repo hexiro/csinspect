@@ -1,5 +1,7 @@
 FROM python:3.10-bullseye
 
+ARG REDIS_HOST
+
 WORKDIR /app
 COPY requirements.txt requirements.txt
 
