@@ -24,5 +24,8 @@ TWITTER_API_KEY_SECRET = os.environ["TWITTER_API_KEY_SECRET"]
 TWITTER_ACCESS_TOKEN = os.environ["TWITTER_ACCESS_TOKEN"]
 TWITTER_ACCESS_TOKEN_SECRET = os.environ["TWITTER_ACCESS_TOKEN_SECRET"]
 
-REDIS_HOST = os.environ["REDIS_HOST"]
+REDIS_HOST = os.getenv("REDIS_HOST", default="localhost")
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", default=None)
+REDIS_PORT = int(os.getenv("REDIS_PORT", default=6379))
+REDIS_DATABASE = int(os.getenv("REDIS_DATABASE", default=0))
 REDIS_EX = 60 * 60 * 24 * 30
