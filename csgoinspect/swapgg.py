@@ -24,11 +24,6 @@ screenshot_queue: list[Item] = []
 def get_socket() -> socketio.Client:
     socket = socketio.Client(handle_sigint=True)
 
-    def screenshot(item: Item) -> None:
-        screenshot_queue.append(item)
-
-    socket.screenshot = staticmethod(screenshot)
-
     @socket.on("connect")
     def on_connect():
         logger.debug("connected to swap.gg websocket")
