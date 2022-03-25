@@ -24,6 +24,11 @@ screenshot_queue: list[Item] = []
 def get_socket() -> socketio.Client:
     socket = socketio.Client(handle_sigint=True)
 
+    def screenshot(item: Item) -> None:
+        screenshot_queue.append(item)
+
+    socket.screenshot = staticmethod(screenshot)
+
     @socket.on("connect")
     def on_connect():
         logger.debug("connected to swap.gg websocket")
@@ -77,14 +82,19 @@ def screenshot(item: Item) -> None:
         item.set_image_link(data["result"]["imageLink"])
     else:
         logger.debug(f"screenshotting -- inspect link: {item.unquoted_inspect_link}")
+        connect()
         screenshot_queue.append(item)
 
 
 def connect():
     socket = get_socket()
+    if socket.connected:
+        return
     socket.connect("wss://market-ws.swap.gg")
 
 
 def disconnect():
     socket = get_socket()
+    if not socket.connected:
+        return
     socket.disconnect()
