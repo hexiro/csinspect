@@ -20,6 +20,8 @@ def main() -> None:
             logger.info(f"handling tweet: {tweet!r}")
             for item in tweet.items:
                 swapgg.screenshot(item)
+    except Exception as e:
+        logger.exception(e)
     finally:
         swapgg.disconnect()
 
