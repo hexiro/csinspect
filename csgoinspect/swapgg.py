@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import cache
 from typing import TYPE_CHECKING
 
 import requests
@@ -17,17 +18,33 @@ headers = {
     "Referrer-Policy": "strict-origin-when-cross-origin",
 }
 screenshot_queue: list[Item] = []
-socket = socketio.Client(handle_sigint=True)
 
 
-@socket.on("connect")
-def on_connect():
-    logger.debug("connected to swap.gg websocket")
+@cache
+def get_socket() -> socketio.Client:
+    socket = socketio.Client(handle_sigint=True)
 
+    @socket.on("connect")
+    def on_connect():
+        logger.debug("connected to swap.gg websocket")
 
-@socket.on("disconnect")
-def on_disconnect():
-    logger.warning("disconnected from swap.gg websocket")
+    @socket.on("disconnect")
+    def on_disconnect():
+        logger.warning("disconnected from swap.gg websocket")
+
+    @socket.on("screenshot:ready")
+    def on_screenshot(data: ScreenshotReady):
+        unquoted_inspect_link = data["inspectLink"]
+        image_link = data["imageLink"]
+
+        if item := find_item(unquoted_inspect_link):
+            logger.debug(f"saved image link for item: {item}")
+            item.set_image_link(image_link)
+            screenshot_queue.remove(item)
+        else:
+            logger.debug(f"received image_link for item with inspect_link: {unquoted_inspect_link}")
+
+    return socket
 
 
 def find_item(unquoted_inspect_link: str) -> Item | None:
@@ -35,19 +52,6 @@ def find_item(unquoted_inspect_link: str) -> Item | None:
         if item.unquoted_inspect_link == unquoted_inspect_link:
             return item
     return None
-
-
-@socket.on("screenshot:ready")
-def on_screenshot(data: ScreenshotReady):
-    unquoted_inspect_link = data["inspectLink"]
-    image_link = data["imageLink"]
-
-    if item := find_item(unquoted_inspect_link):
-        logger.debug(f"saved image link for item: {item}")
-        item.set_image_link(image_link)
-        screenshot_queue.remove(item)
-    else:
-        logger.debug(f"received image_link for item with inspect_link: {unquoted_inspect_link}")
 
 
 def screenshot(item: Item) -> None:
@@ -76,8 +80,11 @@ def screenshot(item: Item) -> None:
         screenshot_queue.append(item)
 
 
+def connect():
+    socket = get_socket()
+    socket.connect("wss://market-ws.swap.gg")
+
+
 def disconnect():
+    socket = get_socket()
     socket.disconnect()
-
-
-socket.connect("wss://market-ws.swap.gg")
