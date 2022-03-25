@@ -8,8 +8,6 @@ services:
       - "6379:6379"
   app:
     build: ./
-    ports:
-      - "8080:8080"
     environment:
       - REDIS_HOST=redis
     depends_on:
