@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import redis
 from loguru import logger
 
-from csgoinspect.commons import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DATABASE, REDIS_EX
+from csgoinspect.commons import REDIS_HOST, REDIS_EX
 
 if TYPE_CHECKING:
     from csgoinspect.tweet import ItemsTweet
@@ -17,12 +17,7 @@ if TYPE_CHECKING:
 
 @cache
 def get_redis() -> redis.Redis:
-    return redis.Redis(
-        host=REDIS_HOST,
-        password=REDIS_PASSWORD,
-        port=REDIS_PORT,
-        db=REDIS_DATABASE
-    )
+    return redis.Redis(host=REDIS_HOST)
 
 
 def already_responded(tweet: ItemsTweet) -> bool:
