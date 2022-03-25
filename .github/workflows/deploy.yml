@@ -12,6 +12,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
-      - name: install dependencies
+      - name: restarting
         run: |
-          docker-compose restart app
+          docker-compose restart
