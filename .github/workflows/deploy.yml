@@ -12,6 +12,5 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
-      - name: restarting
-        run: |
-          docker-compose restart
+      - name: deploy
+        run: docker-compose up -d --build
