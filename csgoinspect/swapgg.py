@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from functools import cache
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 import requests
@@ -20,7 +20,7 @@ headers = {
 screenshot_queue: list[Item] = []
 
 
-@cache
+@lru_cache(maxsize=None)
 def get_socket() -> socketio.Client:
     socket = socketio.Client(handle_sigint=True)
 

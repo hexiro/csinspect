@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from functools import cache
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 import redis
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from csgoinspect.tweet import ItemsTweet
 
 
-@cache
+@lru_cache(maxsize=None)
 def get_redis() -> redis.Redis:
     return redis.Redis(host=REDIS_HOST,
                        password=REDIS_PASSWORD,
