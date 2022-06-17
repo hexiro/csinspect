@@ -6,6 +6,7 @@ services:
       - redis:/data
     ports:
       - "6379:6379"
+    restart: on-failure
   app:
     build: ./
     environment:
@@ -14,5 +15,6 @@ services:
       - redis
     volumes:
       - "./:/app"
+    restart: on-failure
 volumes:
   redis:
