@@ -5,7 +5,7 @@
   <br/>
 
   <img src="https://img.shields.io/github/license/Hexiro/csgoinspect?style=for-the-badge&color=390099">
-  <a href="https://twitter.com/csgoinspect">
+  <a href="https://twitter.com/csgoinspect" target="_blank" rel="noreferrer">
     <img src="https://img.shields.io/twitter/follow/csgoinspect?color=390099&amp;logo=twitter&amp;style=for-the-badge"/>
   </a>
 
@@ -13,7 +13,7 @@
   <br/>
   <br/>
 
-  <a href="https://twitter.com/csgoinspect/status/1505670214922420224">
+  <a href="https://twitter.com/csgoinspect/status/1505670214922420224" target="_blank" rel="noreferrer">
     <img src="https://i.imgur.com/ROBD8ZQ.png"/>
   </a>
 </p>
