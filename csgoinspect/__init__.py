@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 
 import pathlib
 import sys
@@ -6,10 +7,24 @@ from datetime import datetime
 
 import dotenv
 from loguru import logger
+import sentry_sdk
 
 parent_directory = pathlib.Path(__file__).parents[1]
 dotenv_path = parent_directory / ".env"
-dotenv.load_dotenv(dotenv_path)
+if dotenv_path.is_file():
+    dotenv.load_dotenv(dotenv_path)
+
+
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
+        traces_sample_rate=1.0,
+    )
+
 
 logs = parent_directory / "logs"
 logs.mkdir(exist_ok=True)
@@ -24,7 +39,7 @@ log_format = f"{time_format} {level_format}| {name_format}:{line_format} | {mess
 config = {
     "handlers": [
         {"sink": sys.stdout, "format": log_format, "level": "DEBUG"},
-        {"sink": f"{logs}/{datetime.now():%Y-%m-%d}.log", "rotation": "1 day", "format": log_format, "level": "DEBUG"}
+        {"sink": f"{logs}/{datetime.now():%Y-%m-%d}.log", "rotation": "1 day", "format": log_format, "level": "DEBUG"},
     ]
 }
 logger.configure(**config)
