@@ -9,8 +9,6 @@ from csgoinspect.twitter import Twitter
 def main() -> None:
     twitter = Twitter()
     try:
-        # TODO: FIND TWEETS VIA INVENTORY LINK
-        # TODO: async?
         for tweet in twitter.find_tweets():
             logger.info(f"handling tweet: {tweet!r}")
             for item in tweet.items:

@@ -1,14 +1,28 @@
 from __future__ import annotations
+import re
 
 import time
-from typing import re
 
+import tweepy
 import tweepy.models
+
+# from tweepy.models import
 from loguru import logger
 
 from csgoinspect import redis_
-from csgoinspect.commons import TWITTER_BEARER_TOKEN, TWITTER_API_KEY, TWITTER_API_KEY_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET, \
-    INSPECT_URL_REGEX, LIVE_RULES, INSPECT_LINK_QUERY, TWEET_EXPANSIONS, TWEET_TWEET_FIELDS, TWEET_USER_FIELDS
+from csgoinspect.commons import (
+    TWITTER_BEARER_TOKEN,
+    TWITTER_API_KEY,
+    TWITTER_API_KEY_SECRET,
+    TWITTER_ACCESS_TOKEN,
+    TWITTER_ACCESS_TOKEN_SECRET,
+    INSPECT_URL_REGEX,
+    LIVE_RULES,
+    INSPECT_LINK_QUERY,
+    TWEET_EXPANSIONS,
+    TWEET_TWEET_FIELDS,
+    TWEET_USER_FIELDS,
+)
 from csgoinspect.item import Item
 from csgoinspect.tweet import ItemsTweet
 
@@ -22,16 +36,18 @@ class Twitter(tweepy.Client):
             consumer_key=TWITTER_API_KEY,
             consumer_secret=TWITTER_API_KEY_SECRET,
             access_token=TWITTER_ACCESS_TOKEN,
-            access_token_secret=TWITTER_ACCESS_TOKEN_SECRET
+            access_token_secret=TWITTER_ACCESS_TOKEN_SECRET,
         )
         self._items_tweets: list[ItemsTweet] = []
 
-        self._twitter_v1 = tweepy.API(tweepy.OAuthHandler(
-            consumer_key=TWITTER_API_KEY,
-            consumer_secret=TWITTER_API_KEY_SECRET,
-            access_token=TWITTER_ACCESS_TOKEN,
-            access_token_secret=TWITTER_ACCESS_TOKEN_SECRET
-        ))
+        self._twitter_v1 = tweepy.API(
+            tweepy.OAuthHandler(
+                consumer_key=TWITTER_API_KEY,
+                consumer_secret=TWITTER_API_KEY_SECRET,
+                access_token=TWITTER_ACCESS_TOKEN,
+                access_token_secret=TWITTER_ACCESS_TOKEN_SECRET,
+            )
+        )
 
         self._live_twitter = tweepy.StreamingClient(TWITTER_BEARER_TOKEN)
         self._live_twitter.add_rules(LIVE_RULES)
@@ -88,7 +104,7 @@ class Twitter(tweepy.Client):
             expansions=TWEET_EXPANSIONS,
             tweet_fields=TWEET_TWEET_FIELDS,
             user_fields=TWEET_USER_FIELDS,
-        )
+        )  # type: ignore
         tweets: list[tweepy.Tweet] = search_results.data
         items_tweets: list[ItemsTweet] = []
         for tweet in tweets:
@@ -103,13 +119,17 @@ class Twitter(tweepy.Client):
     def _start(self):
         logger.debug("connected to live twitter")
         self._live_twitter.filter(
-            expansions=TWEET_EXPANSIONS,
-            tweet_fields=TWEET_TWEET_FIELDS,
-            user_fields=TWEET_USER_FIELDS,
-            threaded=True
+            expansions=TWEET_EXPANSIONS, tweet_fields=TWEET_TWEET_FIELDS, user_fields=TWEET_USER_FIELDS, threaded=True
         )
 
-    def media_upload(self, filename, *, file=None, chunked=False,
-                     media_category=None, additional_owners=None, **kwargs) -> tweepy.models.Media:
-        return self._twitter_v1.media_upload(filename=filename, file=file, chunked=chunked,
-                                             media_category=media_category, additional_owners=additional_owners, **kwargs)
+    def media_upload(
+        self, filename, *, file=None, chunked=False, media_category=None, additional_owners=None, **kwargs
+    ) -> tweepy.models.Media:
+        return self._twitter_v1.media_upload(
+            filename=filename,
+            file=file,
+            chunked=chunked,
+            media_category=media_category,
+            additional_owners=additional_owners,
+            **kwargs,
+        )  # type: ignore

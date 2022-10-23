@@ -7,6 +7,8 @@ import requests
 import socketio
 from loguru import logger
 
+from csgoinspect.typings import ScreenshotCompletedResult
+
 if TYPE_CHECKING:
     from csgoinspect.typings import SwapGGScreenshotResponse, ScreenshotReady
     from csgoinspect.item import Item
@@ -24,15 +26,15 @@ screenshot_queue: list[Item] = []
 def get_socket() -> socketio.Client:
     socket = socketio.Client(handle_sigint=True)
 
-    @socket.on("connect")
+    @socket.on("connect")  # type: ignore
     def on_connect():
         logger.debug("connected to swap.gg websocket")
 
-    @socket.on("disconnect")
+    @socket.on("disconnect")  # type: ignore
     def on_disconnect():
         logger.warning("disconnected from swap.gg websocket")
 
-    @socket.on("screenshot:ready")
+    @socket.on("screenshot:ready")  # type: ignore
     def on_screenshot(data: ScreenshotReady):
         unquoted_inspect_link = data["inspectLink"]
         image_link = data["imageLink"]
@@ -55,9 +57,7 @@ def find_item(unquoted_inspect_link: str) -> Item | None:
 
 
 def screenshot(item: Item) -> None:
-    payload = {
-        "inspectLink": item.unquoted_inspect_link
-    }
+    payload = {"inspectLink": item.unquoted_inspect_link}
 
     logger.debug(f"requesting screenshot for item: {item}")
     logger.debug(f"payload: {payload}")
@@ -74,7 +74,7 @@ def screenshot(item: Item) -> None:
         item.trigger_finished()
     elif data["result"]["state"] == "COMPLETED":
         logger.debug(f"screenshot already taken for item: {item}")
-        item.set_image_link(data["result"]["imageLink"])
+        item.set_image_link(data["result"]["imageLink"])  # type: ignore
     else:
         logger.debug(f"screenshotting -- inspect link: {item.unquoted_inspect_link}")
         connect()

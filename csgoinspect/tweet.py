@@ -4,6 +4,7 @@ import io
 from typing import TYPE_CHECKING
 
 import requests
+import tweepy
 import tweepy.models
 from loguru import logger
 
@@ -50,13 +51,13 @@ class ItemsTweet(tweepy.Tweet):
                 continue
             screenshot = requests.get(item.image_link)
             screenshot_file = io.BytesIO(screenshot.content)
-            media: tweepy.models.Media = self._twitter.media_upload(filename=item.image_link, file=screenshot_file)
+            media: tweepy.models.Media = self._twitter.media_upload(filename=item.image_link, file=screenshot_file)  # type: ignore
             media_uploads.append(media)
         return media_uploads
 
     def reply(self):
         logger.success(f"replying to tweet: {self!r}")
         media_uploads = self._upload_items()
-        media_ids = [media.media_id for media in media_uploads]
-        self._twitter.create_tweet(in_reply_to_tweet_id=self.id, media_ids=media_ids)
+        media_ids: list[int | str] = [media.media_id for media in media_uploads]  # type: ignore
+        self._twitter.create_tweet(in_reply_to_tweet_id=self.id, media_ids=media_ids)  # type: ignore
         redis_.store_tweet(self)

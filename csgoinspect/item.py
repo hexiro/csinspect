@@ -16,7 +16,7 @@ class Item:
     inspect_link: str
     image_link: str | None = field(hash=False, default=None)
     state: ItemScreenshotState = field(hash=False, init=False, compare=False, default=ItemScreenshotState.INCOMPLETE)
-    _tweet: ItemsTweet = field(repr=False, hash=False, init=False, compare=False, default=None)
+    _tweet: ItemsTweet = field(repr=False, hash=False, init=False, compare=False, default=None)  # type: ignore
 
     def set_image_link(self, value: str) -> None:
         self.image_link = value
