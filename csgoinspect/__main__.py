@@ -1,28 +1,14 @@
 from __future__ import annotations
 
-from loguru import logger
+import asyncio
 
-from csgoinspect import swapgg
-from csgoinspect.twitter import Twitter
+from csgoinspect.csgoinspect import CSGOInspect
 
 
-def main() -> None:
-    twitter = Twitter()
-    try:
-        for tweet in twitter.find_tweets():
-            logger.info(f"handling tweet: {tweet!r}")
-            for item in tweet.items:
-                swapgg.screenshot(item)
-
-        for tweet in twitter.live():
-            logger.info(f"handling tweet: {tweet!r}")
-            for item in tweet.items:
-                swapgg.screenshot(item)
-    except Exception as e:
-        logger.exception(e)
-    finally:
-        swapgg.disconnect()
+async def main() -> None:
+    csgo_inspect = CSGOInspect()
+    await csgo_inspect.run()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

@@ -1,3 +1,4 @@
+import asyncio
 from csgoinspect.__main__ import main
 
-main()
+asyncio.run(main())

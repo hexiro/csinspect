@@ -1,16 +1,7 @@
 from __future__ import annotations
 
-from enum import Enum, auto
-from typing import TYPE_CHECKING
+import typing as t
 from typing import TypedDict
-
-if TYPE_CHECKING:
-    from typing import Literal
-
-
-class ItemScreenshotState(Enum):
-    INCOMPLETE = auto()  # hasn't started or waiting
-    FINISHED = auto()  # finished or failed to fetch
 
 
 class SwapGGScreenshotResponse(TypedDict):
@@ -29,9 +20,9 @@ class ScreenshotNotCompletedResult(TypedDict):
 class ScreenshotCompletedResult(TypedDict):
     marketName: str
     inspectLink: str
-    state: Literal["COMPLETED"]
-    itemInfo: object  # typings not needed
     imageLink: str
+    state: t.Literal["COMPLETED"]
+    itemInfo: object  # typings not needed
 
 
 class ScreenshotReady(TypedDict):
