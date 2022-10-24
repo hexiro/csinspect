@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 if t.TYPE_CHECKING:
     import tweepy
+
     from csgoinspect.item import Item
 
 
@@ -17,7 +18,7 @@ class TweetWithItems:
 
     @property
     def id(self) -> int:
-        return self.tweet.id
+        return self.tweet.id  # type: ignore[no-any-return]
 
     @property
     def url(self) -> str:

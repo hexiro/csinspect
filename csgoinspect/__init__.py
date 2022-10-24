@@ -1,13 +1,13 @@
 from __future__ import annotations
-import os
 
+import os
 import pathlib
 import sys
 from datetime import datetime
 
 import dotenv
-from loguru import logger
 import sentry_sdk
+from loguru import logger
 
 parent_directory = pathlib.Path(__file__).parents[1]
 dotenv_path = parent_directory / ".env"
@@ -42,4 +42,4 @@ config = {
         {"sink": f"{logs}/{datetime.now():%Y-%m-%d}.log", "rotation": "1 day", "format": log_format, "level": "DEBUG"},
     ]
 }
-logger.configure(**config)
+logger.configure(**config)  # type: ignore[arg-type]

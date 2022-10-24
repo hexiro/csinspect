@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import typing as t
 
 import tweepy
-import typing as t
 from loguru import logger
 
 from csgoinspect import redis_, swapgg, twitter
 from csgoinspect.commons import (
+    INSPECT_LINK_QUERY,
     INSPECT_URL_REGEX,
     LIVE_RULES,
-    INSPECT_LINK_QUERY,
     TWEET_EXPANSIONS,
     TWEET_TWEET_FIELDS,
     TWEET_USER_FIELDS,

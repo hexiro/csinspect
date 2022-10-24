@@ -1,18 +1,16 @@
 from __future__ import annotations
+
 import asyncio
+import typing as t
 
-from functools import lru_cache
-from typing import TYPE_CHECKING
 import httpx
-
 import socketio
 from loguru import logger
 
-
-if TYPE_CHECKING:
-    from csgoinspect.tweet import TweetWithItems
-    from csgoinspect.typings import SwapGGScreenshotResponse, ScreenshotReady
+if t.TYPE_CHECKING:
     from csgoinspect.item import Item
+    from csgoinspect.tweet import TweetWithItems
+    from csgoinspect.typings import ScreenshotReady, SwapGGScreenshotResponse
 
 
 class SwapGG:

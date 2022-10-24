@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
+import typing as t
 from datetime import datetime
 from functools import lru_cache
-from typing import TYPE_CHECKING
 
-from redis.asyncio import Redis
 from loguru import logger
+from redis.asyncio import Redis
 
-from csgoinspect.commons import REDIS_HOST, REDIS_PASSWORD, REDIS_PORT, REDIS_DATABASE, REDIS_EX
+from csgoinspect.commons import REDIS_DATABASE, REDIS_EX, REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
 
-if TYPE_CHECKING:
+if t.TYPE_CHECKING:
     from csgoinspect.tweet import TweetWithItems
 
 
