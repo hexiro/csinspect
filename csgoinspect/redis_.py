@@ -23,14 +23,13 @@ def get_redis() -> Redis:
 async def has_responded(tweet: TweetWithItems) -> bool:
     redis_ = get_redis()
     tweet_value = await redis_.get(str(tweet.id))
-    has_already_responded = tweet_value is not None
-    if has_already_responded:
-        logger.debug(f"already responded -- tweet: {tweet}")
-    return has_already_responded
+    return tweet_value is not None
 
 
 async def mark_responded(tweet: TweetWithItems) -> None:
     """Signifies that a Tweet has been responded to, and is therefore stored"""
     redis_ = get_redis()
-    logger.debug(f"storing tweet data in redis for tweet: {tweet!r}")
+
+    logger.debug(f"STORING TWEET: {tweet.url}")
+
     await redis_.set(name=str(tweet.id), value=datetime.now().isoformat(), ex=REDIS_EX)

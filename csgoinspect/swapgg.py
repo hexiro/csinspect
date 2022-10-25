@@ -26,10 +26,10 @@ class SwapGG:
         self.screenshot_queue: list[Item] = []
 
         async def on_connect() -> None:
-            logger.debug("connected to live swap.gg")
+            logger.debug("CONNECTING: swap.gg WebSocket")
 
         async def on_disconnect() -> None:
-            logger.debug("disconnected from live swap.gg")
+            logger.warning("DISCONNECTING: swap.gg WebSocket")
 
         self.socket.on("connect", on_connect)
         self.socket.on("disconnect", on_disconnect)
@@ -46,7 +46,6 @@ class SwapGG:
         image_link = data["imageLink"]
 
         if item := find_item(unquoted_inspect_link):
-            logger.debug(f"saved image link for item: {item}")
 
             item.image_link = image_link
             item.is_ready = True
@@ -54,8 +53,6 @@ class SwapGG:
             self.screenshot_queue.remove(item)
 
             return
-
-        # logger.debug(f"received image_link for item with inspect_link: {unquoted_inspect_link}")
 
     async def connect(self) -> None:
         if self.socket.connected:
@@ -70,8 +67,7 @@ class SwapGG:
     async def screenshot(self, item: Item) -> None:
         payload = {"inspectLink": item.unquoted_inspect_link}
 
-        logger.debug(f"requesting screenshot for item: {item}")
-        logger.debug(f"payload: {payload}")
+        logger.debug(f"SCREENSHOTTING: {item.inspect_link}")
 
         try:
             async with httpx.AsyncClient() as session:
@@ -80,22 +76,18 @@ class SwapGG:
                 )
             data: SwapGGScreenshotResponse = response.json()
         except httpx.HTTPError:
-            logger.warning(f"Failed to receive response for item: {item}")
             return
 
         if data["status"] != "OK":
-            logger.warning(f"Failed to request screenshot for item: {item}\n{data}")
             item.is_ready = True
 
             return
         if data["result"]["state"] == "COMPLETED":
-            logger.debug(f"screenshot already taken for item: {item}")
             item.image_link = data["result"]["imageLink"]  # type: ignore
             item.is_ready = True
 
             return
 
-        logger.debug(f"screenshotting -- inspect link: {item.unquoted_inspect_link}")
         await self.connect()
         self.screenshot_queue.append(item)
 
@@ -104,8 +96,6 @@ class SwapGG:
 
     async def screenshot_tweet(self, tweet: TweetWithItems) -> None:
 
-        logger.debug(f"screenshotting tweet: {tweet!r}")
-
         screenshot_tasks: list[asyncio.Task[None]] = []
         for item in tweet.items:
             screenshot_coro = self.screenshot(item)
@@ -113,6 +103,3 @@ class SwapGG:
             screenshot_tasks.append(screenshot_task)
 
         await asyncio.gather(*screenshot_tasks)
-
-        logger.debug(f"tweet screenshotted: {tweet!r}")
-        logger.success("DONE WAITING: {tweet!r}")

@@ -47,17 +47,15 @@ class Twitter:
         self.live = tweepy.asynchronous.AsyncStreamingClient(TWITTER_BEARER_TOKEN)
 
         async def on_connect() -> None:
-            logger.debug("connected to live twitter")
+            logger.debug("CONNECTING: Twitter Streaming API")
 
         async def on_disconnect() -> None:
-            logger.debug("disconnected from live twitter")
+            logger.debug("CONNECTING: Twitter Streaming API")
 
         self.live.on_connect = on_connect
         self.live.on_disconnect = on_disconnect
 
     async def reply(self, tweet: TweetWithItems) -> None:
-        logger.success(f"replying to tweet: {tweet!r}")
-
         media_uploads = await self.upload_items(tweet.items)
         media_ids: list[int] = [media.media_id for media in media_uploads]  # type: ignore
 

@@ -29,12 +29,11 @@ if SENTRY_DSN:
 logs = parent_directory / "logs"
 logs.mkdir(exist_ok=True)
 
-time_format = "<red>[{time:MM-DD-YY h:mm:ss A}]</red>"
-level_format = "<level>{level: <8}</level>"
-name_format = "<cyan>{name}</cyan>"
-line_format = "<blue>{line}</blue>"
+time_format = "<red>[{time:h:mm:ss A}]</red>"
+level_format = "<level>{level: <6}</level>"
+
 message_format = "<bold>{message}</bold>"
-log_format = f"{time_format} {level_format}| {name_format}:{line_format} | {message_format}"
+log_format = f"{time_format} {level_format} | {message_format}"
 
 config = {
     "handlers": [
