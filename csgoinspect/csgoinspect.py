@@ -6,7 +6,7 @@ import typing as t
 import tweepy
 from loguru import logger
 
-from csgoinspect import redis_, swapgg, twitter
+from csgoinspect import redis_, screenshot_tools, twitter
 from csgoinspect.commons import (
     INSPECT_LINK_QUERY,
     INSPECT_URL_REGEX,
@@ -24,7 +24,7 @@ if t.TYPE_CHECKING:
 
 class CSGOInspect:
     def __init__(self) -> None:
-        self.swap_gg = swapgg.SwapGG()
+        self.screenshots = screenshot_tools.ScreenshotTools()
         self.twitter = twitter.Twitter()
         self.twitter.live.on_tweet = self.on_tweet
 
@@ -52,8 +52,6 @@ class CSGOInspect:
         return items_tweets
 
     async def run(self) -> None:
-        await self.swap_gg.connect()
-
         async def incrementally_find_tweets() -> None:
             logger.debug("STARTING: INCREMENTALLY FIND TWEETS")
             while True:
@@ -78,7 +76,11 @@ class CSGOInspect:
 
     async def process_tweet(self, tweet: TweetWithItems) -> None:
         logger.info(f"PROCESSING TWEET: {tweet.url}")
-        await self.swap_gg.screenshot_tweet(tweet)
+        await self.screenshots.screenshot_tweet(tweet)
+
+        if not any(item.image_link for item in tweet.items):
+            logger.info(f"SKIPPING TWEET: {tweet.url} (Failed To Screenshot)")
+            return
 
         logger.info(f"REPLYING TO TWEET: {tweet.url}")
         logger.debug(f"{tweet.items=}")
@@ -96,18 +98,18 @@ class CSGOInspect:
         matches = matches[:4]
 
         if not matches:
-            logger.debug(f"SKIPPING TWEET: {tweet.id} (No Inspect Links)")
+            logger.info(f"SKIPPING TWEET: {tweet.id} (No Inspect Links)")
             return None
 
         if tweet.attachments:  # potentially already has screenshot
-            logger.debug(f"SKIPPING TWEET: {tweet.id} (Has Attachments)")
+            logger.info(f"SKIPPING TWEET: {tweet.id} (Has Attachments)")
             return None
 
         items = tuple(Item(inspect_link=match.group()) for match in matches)
         tweet_with_items = TweetWithItems(items, tweet)
 
         if await redis_.has_responded(tweet_with_items):
-            logger.debug(f"SKIPPING TWEET: {tweet.id} (Already Responded)")
+            logger.info(f"SKIPPING TWEET (Already Responded): {tweet.id}")
             return None
 
         return tweet_with_items
