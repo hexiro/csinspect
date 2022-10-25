@@ -79,7 +79,7 @@ class CSGOInspect:
         await self.screenshots.screenshot_tweet(tweet)
 
         if not any(item.image_link for item in tweet.items):
-            logger.info(f"SKIPPING TWEET: {tweet.url} (Failed To Screenshot)")
+            logger.info(f"SKIPPING TWEET (Failed To Screenshot): {tweet.url} ")
             return
 
         logger.info(f"REPLYING TO TWEET: {tweet.url}")
@@ -98,11 +98,11 @@ class CSGOInspect:
         matches = matches[:4]
 
         if not matches:
-            logger.info(f"SKIPPING TWEET: {tweet.id} (No Inspect Links)")
+            logger.info(f"SKIPPING TWEET (No Inspect Links): {tweet.id} ")
             return None
 
         if tweet.attachments:  # potentially already has screenshot
-            logger.info(f"SKIPPING TWEET: {tweet.id} (Has Attachments)")
+            logger.info(f"SKIPPING TWEET (Has Attachments): {tweet.id} ")
             return None
 
         items = tuple(Item(inspect_link=match.group()) for match in matches)

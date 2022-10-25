@@ -4,14 +4,12 @@ import urllib.parse
 from dataclasses import dataclass, field
 
 
-@dataclass
+@dataclass(unsafe_hash=True, slots=True)
 class Item:
     """Represents an Item in a CS:GO inventory."""
 
-    inspect_link: str
-    image_link: str | None = field(compare=False, init=False, default=None)
-    # False if not waiting on screenshot
-    is_ready: bool = field(compare=False, init=False, default=False)
+    inspect_link: str = field(hash=True)
+    image_link: str | None = field(compare=False, init=False, hash=False, default=None)
 
     @property
     def unquoted_inspect_link(self) -> str:

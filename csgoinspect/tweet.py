@@ -9,7 +9,7 @@ if t.TYPE_CHECKING:
     from csgoinspect.item import Item
 
 
-@dataclass
+@dataclass(slots=True)
 class TweetWithItems:
     """A Tweet that also contains data about CS:GO items."""
 
@@ -23,7 +23,3 @@ class TweetWithItems:
     @property
     def url(self) -> str:
         return f"https://twitter.com/i/web/status/{self.id}"
-
-    @property
-    def is_ready(self) -> bool:
-        return all(item.is_ready for item in self.items)

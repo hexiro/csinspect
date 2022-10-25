@@ -23,13 +23,13 @@ class ScreenshotTools:
 
     def __init__(self) -> None:
         self.swap_gg_socket = socketio.AsyncClient(handle_sigint=True)
-        self.screenshot_queue: list[Item] = []
+        self.screenshot_queue: set[Item] = set()
 
         async def on_connect() -> None:
-            logger.debug("CONNECTING: swap.gg WebSocket")
+            logger.debug("CONNECTED: swap.gg WebSocket")
 
         async def on_disconnect() -> None:
-            logger.warning("DISCONNECTING: swap.gg WebSocket")
+            logger.warning("DISCONNECTED: swap.gg WebSocket")
 
         self.swap_gg_socket.on("connect", on_connect)
         self.swap_gg_socket.on("disconnect", on_disconnect)
@@ -50,8 +50,6 @@ class ScreenshotTools:
             logger.debug(f"SCREENSHOT READY: {item.inspect_link}")
 
             item.image_link = image_link
-            item.is_ready = True
-
             self.screenshot_queue.remove(item)
 
             return
@@ -59,21 +57,17 @@ class ScreenshotTools:
         logger.debug(f"SCREENSHOT RECEIVED : {unquoted_inspect_link}")
 
     async def screenshot(self, item: Item) -> None:
-        if swap_gg_screenshot := await self._swap_gg_screenshot(item):
-            item.image_link = swap_gg_screenshot
-            item.is_ready = True
-            return
-        logger.warning(f"SWAP.GG SCREENSHOT FAILED: {item.inspect_link}")
-        if skinport_screenshot := await self._skinport_screenshot(item):
-            item.image_link = skinport_screenshot
-            item.is_ready = True
-            return
-        logger.warning(f"SKINPORT SCREENSHOT FAILED: {item.inspect_link}")
-
-    async def _swap_gg_screenshot(self, item: Item) -> str | None:
-        payload = {"inspectLink": item.unquoted_inspect_link}
-
         logger.debug(f"SCREENSHOTTING: {item.inspect_link}")
+
+        if not await self._swap_gg_screenshot(item):
+            logger.warning(f"SWAP.GG SCREENSHOT FAILED: {item.inspect_link}")
+        if not await self._skinport_screenshot(item):
+            logger.warning(f"SKINPORT SCREENSHOT FAILED: {item.inspect_link}")
+
+        logger.debug(f"SCREENSHOT COMPLETE: {item.image_link}")
+
+    async def _swap_gg_screenshot(self, item: Item) -> bool:
+        payload = {"inspectLink": item.unquoted_inspect_link}
 
         try:
             async with httpx.AsyncClient() as session:
@@ -82,30 +76,38 @@ class ScreenshotTools:
                 )
             data: SwapGGScreenshotResponse = response.json()
         except httpx.HTTPError:
-            return None
+            return False
 
         if data["status"] != "OK":
-            return None
+            return False
 
         result: SwapGGScreenshotResult | None = data.get("result")  # type: ignore[assignment]
 
         if not result:
-            return None
+            return False
 
         if result["state"] == "COMPLETED":
-            return data["result"]["imageLink"]  # type: ignore
+            image_link: str = data["result"]["imageLink"]  # type: ignore
+            item.image_link = image_link
+            return True
 
         if not self.swap_gg_socket.connected:
             await self.swap_gg_socket.connect("wss://market-ws.swap.gg")
 
-        self.screenshot_queue.append(item)
+        self.screenshot_queue.add(item)
 
-        while not item.is_ready:
+        logger.debug(f"SCREENSHOT QUEUED: {item.inspect_link}")
+        logger.debug(f"SCREENSHOT QUEUE: {self.screenshot_queue}")
+
+        logger.debug(f"ITEM IN QUEUE: {item in self.screenshot_queue}")
+
+        while item in self.screenshot_queue:
+            logger.debug(f"SCREENSHOT WAITING: {item.inspect_link}")
             await asyncio.sleep(1)
 
-        return None
+        return True
 
-    async def _skinport_screenshot(self, item: Item) -> str | None:
+    async def _skinport_screenshot(self, item: Item) -> bool:
         """
         Unlike swap.gg, Skinport does not use a WebSocket connection to get the screenshot.
         """
@@ -116,14 +118,11 @@ class ScreenshotTools:
             if response.status_code == 308 and response.next_request:  # redirects and format inspect link
                 response = await session.send(response.next_request)
 
-            if response.status_code == 307 and response.next_request:
-                return str(response.next_request.url)
-
         if response.next_request:
             item.inspect_link = str(response.next_request.url)
-            item.is_ready = True
+            return True
 
-        return None
+        return False
 
     async def screenshot_tweet(self, tweet: TweetWithItems) -> None:
 

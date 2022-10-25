@@ -47,10 +47,10 @@ class Twitter:
         self.live = tweepy.asynchronous.AsyncStreamingClient(TWITTER_BEARER_TOKEN)
 
         async def on_connect() -> None:
-            logger.debug("CONNECTING: Twitter Streaming API")
+            logger.debug("CONNECTED: Twitter Streaming API")
 
         async def on_disconnect() -> None:
-            logger.debug("CONNECTING: Twitter Streaming API")
+            logger.debug("CONNECTED: Twitter Streaming API")
 
         self.live.on_connect = on_connect
         self.live.on_disconnect = on_disconnect
