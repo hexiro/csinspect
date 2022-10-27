@@ -17,6 +17,7 @@ from csgoinspect.commons import (
 )
 from csgoinspect.item import Item
 from csgoinspect.tweet import TweetWithItems
+from csgoinspect.typings import TweetResponseState
 
 if t.TYPE_CHECKING:
     import re
@@ -29,7 +30,7 @@ class CSGOInspect:
         self.twitter.live.on_tweet = self.on_tweet
 
     async def on_tweet(self, tweet: tweepy.Tweet) -> None:
-        tweet_with_items = await self._parse_tweet_inspect_links(tweet)
+        tweet_with_items = await self._parse_tweet(tweet)
         if not tweet_with_items:
             return
         coro = self.process_tweet(tweet_with_items)
@@ -45,7 +46,7 @@ class CSGOInspect:
         tweets: list[tweepy.Tweet] = search_results.data
         items_tweets: list[TweetWithItems] = []
         for tweet in tweets:
-            tweet_with_items = await self._parse_tweet_inspect_links(tweet)
+            tweet_with_items = await self._parse_tweet(tweet)
             if not tweet_with_items:
                 continue
             items_tweets.append(tweet_with_items)
@@ -76,23 +77,36 @@ class CSGOInspect:
 
     async def process_tweet(self, tweet: TweetWithItems) -> None:
         logger.info(f"PROCESSING TWEET: {tweet.url}")
-        await self.screenshots.screenshot_tweet(tweet)
+        screenshot_responses = await self.screenshots.screenshot_tweet(tweet)
 
-        if not any(item.image_link for item in tweet.items):
-            logger.info(f"SKIPPING TWEET (Failed To Screenshot): {tweet.url} ")
+        if not any(screenshot_responses):
+            logger.info(f"SKIPPING TWEET (Failed To Generate Screenshots): {tweet.url}")
+
+            await self.twitter.failed_reply(tweet)
+            await redis_.mark_responded(tweet, TweetResponseState.FAILED)
             return
 
-        logger.info(f"REPLYING TO TWEET: {tweet.url}")
+        logger.success(f"REPLYING TO TWEET: {tweet.url}")
         logger.debug(f"{tweet.items=}")
-        await self.twitter.reply(tweet)
-        await redis_.mark_responded(tweet)
+
+        try:
+            await self.twitter.reply(tweet)
+        except tweepy.TweepyException:
+            logger.exception(f"ERROR REPLYING: {tweet.url}")
+
+            await self.twitter.failed_reply(tweet)
+            await redis_.mark_responded(tweet, TweetResponseState.FAILED)
+            return
+
+        state = TweetResponseState.SUCCESSFUL if all(screenshot_responses) else TweetResponseState.PARTIALLY_SUCCESSFUL
+        await redis_.mark_responded(tweet, state)
 
     async def process_tweets(self, tweets: t.Iterable[TweetWithItems]) -> None:
         for tweet in tweets:
             coro = self.process_tweet(tweet)
             asyncio.create_task(coro)
 
-    async def _parse_tweet_inspect_links(self, tweet: tweepy.Tweet) -> TweetWithItems | None:
+    async def _parse_tweet(self, tweet: tweepy.Tweet) -> TweetWithItems | None:
         # Twitter only allows 4 images
         matches: list[re.Match] = list(INSPECT_URL_REGEX.finditer(tweet.text))
         matches = matches[:4]
@@ -106,10 +120,14 @@ class CSGOInspect:
             return None
 
         items = tuple(Item(inspect_link=match.group()) for match in matches)
-        tweet_with_items = TweetWithItems(items, tweet)
 
-        if await redis_.has_responded(tweet_with_items):
-            logger.info(f"SKIPPING TWEET (Already Responded): {tweet.id}")
+        tweet_with_items = TweetWithItems(items, tweet)
+        response_state = await redis_.response_state(tweet_with_items)
+
+        if response_state is TweetResponseState.SUCCESSFUL:
+            logger.info(f"SKIPPING TWEET (Already Successfully Responded): {tweet.id}")
             return None
+
+        tweet_with_items.previous_state = response_state
 
         return tweet_with_items

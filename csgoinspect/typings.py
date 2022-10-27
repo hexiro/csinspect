@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import typing as t
+from enum import Enum
 from typing import TypedDict
+
+if t.TYPE_CHECKING:
+    from datetime import datetime
 
 
 class SwapGGSSuccessfulScreenshotResponse(TypedDict):
@@ -39,3 +43,20 @@ SwapGGScreenshotResult: t.TypeAlias = SwapGGScreenshotCompletedResult | SwapGGSc
 class SwapGGScreenshotReady(TypedDict):
     imageLink: str
     inspectLink: str
+
+
+class TweetResponseState(Enum):
+    SUCCESSFUL = 0
+    FAILED = 1
+    PARTIALLY_SUCCESSFUL = 2
+    NOT_RESPONDED = 3
+
+
+class TweetResponseDataDict(TypedDict):
+    time: str
+    state: int
+
+
+class TweetResponseData(TypedDict):
+    time: datetime
+    state: TweetResponseState

@@ -7,6 +7,7 @@ import typing as t
 import httpx
 import tweepy
 import tweepy.asynchronous
+import tweepy.errors
 from loguru import logger
 
 from csgoinspect.commons import (
@@ -16,12 +17,15 @@ from csgoinspect.commons import (
     TWITTER_API_KEY_SECRET,
     TWITTER_BEARER_TOKEN,
 )
+from csgoinspect.typings import TweetResponseState
 
 if t.TYPE_CHECKING:
     from tweepy.models import Media
 
     from csgoinspect.item import Item
     from csgoinspect.tweet import TweetWithItems
+
+ignore_media: bool = True
 
 
 class Twitter:
@@ -59,7 +63,27 @@ class Twitter:
         media_uploads = await self.upload_items(tweet.items)
         media_ids: list[int] = [media.media_id for media in media_uploads]  # type: ignore
 
-        await self.v2.create_tweet(in_reply_to_tweet_id=tweet.id, media_ids=media_ids)  # type: ignore
+        global ignore_media
+
+        if ignore_media:
+            media_ids = []
+            ignore_media = False
+
+        await self.v2.create_tweet(in_reply_to_tweet_id=tweet.id, media_ids=media_ids)
+
+    async def failed_reply(self, tweet: TweetWithItems) -> None:
+        if tweet.previous_state is TweetResponseState.FAILED:
+            # If the tweet has already failed, don't reply again
+            return
+        try:
+            await self.v2.create_tweet(
+                in_reply_to_tweet_id=tweet.id,
+                text="Unfortunately, I couldn't generate a screenshot for you at this time. I will retry in 10 minutes.",
+            )
+        except tweepy.TweepyException:
+            # silently ignore if we can't reply (this could be due to permissions to reply to a tweet)
+            logger.exception("FAILED TO SEND FAILED REPLY")
+        return None
 
     async def upload_items(self, items: t.Iterable[Item]) -> list[Media]:
         async def fetch_screenshot(session: httpx.AsyncClient, image_link: str) -> tuple[str, io.BytesIO]:

@@ -56,15 +56,18 @@ class ScreenshotTools:
 
         logger.debug(f"SCREENSHOT RECEIVED : {unquoted_inspect_link}")
 
-    async def screenshot(self, item: Item) -> None:
+    async def screenshot(self, item: Item) -> bool:
         logger.debug(f"SCREENSHOTTING: {item.inspect_link}")
 
         if not await self._swap_gg_screenshot(item):
             logger.warning(f"SWAP.GG SCREENSHOT FAILED: {item.inspect_link}")
-        if not await self._skinport_screenshot(item):
+        elif not await self._skinport_screenshot(item):
             logger.warning(f"SKINPORT SCREENSHOT FAILED: {item.inspect_link}")
+        else:
+            return False
 
         logger.debug(f"SCREENSHOT COMPLETE: {item.image_link}")
+        return True
 
     async def _swap_gg_screenshot(self, item: Item) -> bool:
         payload = {"inspectLink": item.unquoted_inspect_link}
@@ -124,12 +127,12 @@ class ScreenshotTools:
 
         return False
 
-    async def screenshot_tweet(self, tweet: TweetWithItems) -> None:
-
-        screenshot_tasks: list[asyncio.Task[None]] = []
+    async def screenshot_tweet(self, tweet: TweetWithItems) -> list[bool]:
+        screenshot_tasks: list[asyncio.Task[bool]] = []
         for item in tweet.items:
             screenshot_coro = self.screenshot(item)
             screenshot_task = asyncio.create_task(screenshot_coro)
             screenshot_tasks.append(screenshot_task)
 
-        await asyncio.gather(*screenshot_tasks)
+        screenshot_responses: list[bool] = await asyncio.gather(*screenshot_tasks)
+        return screenshot_responses
