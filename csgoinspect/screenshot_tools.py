@@ -59,11 +59,12 @@ class ScreenshotTools:
     async def screenshot(self, item: Item) -> bool:
         logger.debug(f"SCREENSHOTTING: {item.inspect_link}")
 
-        if not await self._swap_gg_screenshot(item):
+        if not await self._swap_gg_screenshot(item):  # runs if failed
             logger.warning(f"SWAP.GG SCREENSHOT FAILED: {item.inspect_link}")
-        elif not await self._skinport_screenshot(item):
+        elif not await self._skinport_screenshot(item):  # runs if failed
             logger.warning(f"SKINPORT SCREENSHOT FAILED: {item.inspect_link}")
-        else:
+
+        if not item.image_link:
             return False
 
         logger.debug(f"SCREENSHOT COMPLETE: {item.image_link}")
@@ -79,14 +80,17 @@ class ScreenshotTools:
                 )
             data: SwapGGScreenshotResponse = response.json()
         except httpx.HTTPError:
+            logger.exception(f"HTTP ERROR: {item.inspect_link}")
             return False
 
         if data["status"] != "OK":
+            logger.debug(f"SWAP.GG SCREENSHOT FAILED (Not Ok): {data}")
             return False
 
         result: SwapGGScreenshotResult | None = data.get("result")  # type: ignore[assignment]
 
         if not result:
+            logger.debug(f"SWAP.GG SCREENSHOT FAILED (No Result): {data}")
             return False
 
         if result["state"] == "COMPLETED":
@@ -122,7 +126,7 @@ class ScreenshotTools:
                 response = await session.send(response.next_request)
 
         if response.next_request:
-            item.inspect_link = str(response.next_request.url)
+            item.image_link = str(response.next_request.url)
             return True
 
         return False

@@ -4,6 +4,7 @@ import asyncio
 import typing as t
 
 import tweepy
+import tweepy.errors
 from loguru import logger
 
 from csgoinspect import redis_, screenshot_tools, twitter
@@ -79,6 +80,8 @@ class CSGOInspect:
         logger.info(f"PROCESSING TWEET: {tweet.url}")
         screenshot_responses = await self.screenshots.screenshot_tweet(tweet)
 
+        logger.debug(f"SCREENSHOT RESPONSES: {screenshot_responses}")
+
         if not any(screenshot_responses):
             logger.info(f"SKIPPING TWEET (Failed To Generate Screenshots): {tweet.url}")
 
@@ -86,17 +89,19 @@ class CSGOInspect:
             await redis_.mark_responded(tweet, TweetResponseState.FAILED)
             return
 
-        logger.success(f"REPLYING TO TWEET: {tweet.url}")
+        logger.info(f"REPLYING TO TWEET: {tweet.url}")
         logger.debug(f"{tweet.items=}")
 
         try:
             await self.twitter.reply(tweet)
-        except tweepy.TweepyException:
-            logger.exception(f"ERROR REPLYING: {tweet.url}")
+        except tweepy.errors.HTTPException as exc:
+            logger.warning(f"ERROR REPLYING: {tweet.url} - {exc}")
 
             await self.twitter.failed_reply(tweet)
             await redis_.mark_responded(tweet, TweetResponseState.FAILED)
             return
+
+        logger.success(f"REPLIED TO TWEET: {tweet.url}")
 
         state = TweetResponseState.SUCCESSFUL if all(screenshot_responses) else TweetResponseState.PARTIALLY_SUCCESSFUL
         await redis_.mark_responded(tweet, state)
@@ -118,6 +123,10 @@ class CSGOInspect:
         if tweet.attachments:  # potentially already has screenshot
             logger.info(f"SKIPPING TWEET (Has Attachments): {tweet.id} ")
             return None
+
+        # if IS_DEV and DEV_ID and tweet.author_id != DEV_ID:
+        #     logger.info(f"SKIPPING TWEET (Dev Mode & Not Dev): {tweet.id}, {tweet.author_id} ")
+        #     return None
 
         items = tuple(Item(inspect_link=match.group()) for match in matches)
 

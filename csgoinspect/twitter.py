@@ -25,8 +25,6 @@ if t.TYPE_CHECKING:
     from csgoinspect.item import Item
     from csgoinspect.tweet import TweetWithItems
 
-ignore_media: bool = True
-
 
 class Twitter:
     """Merged wrapper of Twitter's v1, v2, and Steaming API provided by Tweepy."""
@@ -63,12 +61,6 @@ class Twitter:
         media_uploads = await self.upload_items(tweet.items)
         media_ids: list[int] = [media.media_id for media in media_uploads]  # type: ignore
 
-        global ignore_media
-
-        if ignore_media:
-            media_ids = []
-            ignore_media = False
-
         await self.v2.create_tweet(in_reply_to_tweet_id=tweet.id, media_ids=media_ids)
 
     async def failed_reply(self, tweet: TweetWithItems) -> None:
@@ -80,7 +72,7 @@ class Twitter:
                 in_reply_to_tweet_id=tweet.id,
                 text="Unfortunately, I couldn't generate a screenshot for you at this time. I will retry in 10 minutes.",
             )
-        except tweepy.TweepyException:
+        except tweepy.errors.HTTPException:
             # silently ignore if we can't reply (this could be due to permissions to reply to a tweet)
             logger.exception("FAILED TO SEND FAILED REPLY")
         return None

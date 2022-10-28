@@ -1,9 +1,21 @@
 from __future__ import annotations
 
 import os
+import pathlib
 import re
 
+import dotenv
 import tweepy
+
+PARENT_DIRECTORY = pathlib.Path(__file__).parents[1]
+DOTENV_PATH = PARENT_DIRECTORY / ".env"
+
+if DOTENV_PATH.is_file():
+    dotenv.load_dotenv(DOTENV_PATH)
+
+
+IS_DEV = os.getenv("IS_DEV", "false").lower() == "true"
+DEV_ID = int(os.environ["DEV_ID"]) if IS_DEV else None
 
 LIVE_RULES = [
     tweepy.StreamRule('"+csgo_econ_action_preview"', tag="+csgo_econ_action_preview'"),
@@ -29,3 +41,5 @@ REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", default=None)
 REDIS_PORT = int(os.getenv("REDIS_PORT", default=6379))
 REDIS_DATABASE = int(os.getenv("REDIS_DATABASE", default=0))
 REDIS_EX = 60 * 60 * 24 * 30
+
+SENTRY_DSN = os.getenv("SENTRY_DSN")
