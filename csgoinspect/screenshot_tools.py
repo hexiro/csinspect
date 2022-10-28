@@ -7,6 +7,8 @@ import httpx
 import socketio
 from loguru import logger
 
+from csgoinspect.commons import SKINPORT_ID
+
 if t.TYPE_CHECKING:
     from csgoinspect.item import Item
     from csgoinspect.tweet import TweetWithItems
@@ -56,15 +58,24 @@ class ScreenshotTools:
 
         logger.debug(f"SCREENSHOT RECEIVED : {unquoted_inspect_link}")
 
-    async def screenshot(self, item: Item) -> bool:
+    async def screenshot(self, item: Item, prefer_skinport: bool = False) -> bool:
+        # sourcery skip: assign-if-exp, introduce-default-else, move-assign-in-block, swap-if-expression
         logger.debug(f"SCREENSHOTTING: {item.inspect_link}")
 
-        if not await self._swap_gg_screenshot(item):  # runs if failed
-            logger.warning(f"SWAP.GG SCREENSHOT FAILED: {item.inspect_link}")
-        elif not await self._skinport_screenshot(item):  # runs if failed
-            logger.warning(f"SKINPORT SCREENSHOT FAILED: {item.inspect_link}")
+        skinport_success: bool = False
+        swapgg_success: bool = False
 
-        if not item.image_link:
+        if prefer_skinport:
+            skinport_success = await self._skinport_screenshot(item)
+
+        if not skinport_success:
+            swapgg_success = await self._swap_gg_screenshot(item)
+
+        if not prefer_skinport and not swapgg_success:
+            skinport_success = await self._skinport_screenshot(item)
+
+        if (not skinport_success and not swapgg_success) or not item.image_link:
+            logger.warning(f"SCREENSHOT FAILED: {item.inspect_link}")
             return False
 
         logger.debug(f"SCREENSHOT COMPLETE: {item.image_link}")
@@ -133,8 +144,11 @@ class ScreenshotTools:
 
     async def screenshot_tweet(self, tweet: TweetWithItems) -> list[bool]:
         screenshot_tasks: list[asyncio.Task[bool]] = []
+
+        prefer_skinport = tweet.author_id == SKINPORT_ID
+
         for item in tweet.items:
-            screenshot_coro = self.screenshot(item)
+            screenshot_coro = self.screenshot(item, prefer_skinport=prefer_skinport)
             screenshot_task = asyncio.create_task(screenshot_coro)
             screenshot_tasks.append(screenshot_task)
 

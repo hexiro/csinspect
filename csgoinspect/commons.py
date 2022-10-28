@@ -17,6 +17,8 @@ if DOTENV_PATH.is_file():
 IS_DEV = os.getenv("IS_DEV", "false").lower() == "true"
 DEV_ID = int(os.environ["DEV_ID"]) if IS_DEV else None
 
+SKINPORT_ID = 973912423295078400
+
 LIVE_RULES = [
     tweepy.StreamRule('"+csgo_econ_action_preview"', tag="+csgo_econ_action_preview'"),
     tweepy.StreamRule('"steam://rungame/730"', tag="steam://rungame/730"),

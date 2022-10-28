@@ -23,5 +23,9 @@ class TweetWithItems:
         return self.tweet.id  # type: ignore[no-any-return]
 
     @property
+    def author_id(self) -> int:
+        return self.tweet.author_id  # type: ignore[no-any-return]
+
+    @property
     def url(self) -> str:
         return f"https://twitter.com/i/web/status/{self.id}"
