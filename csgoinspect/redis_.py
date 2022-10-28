@@ -15,7 +15,7 @@ from csgoinspect.typings import TweetResponseState
 
 if t.TYPE_CHECKING:
     from csgoinspect.tweet import TweetWithItems
-    from csgoinspect.typings import TweetResponseDataDict
+    from csgoinspect.typings import TweetResponseRawData
 
 
 @lru_cache(maxsize=None)
@@ -23,32 +23,36 @@ def get_redis() -> Redis:
     return Redis(host=REDIS_HOST, password=REDIS_PASSWORD, port=REDIS_PORT, db=REDIS_DATABASE)
 
 
-async def response_state(tweet: TweetWithItems) -> TweetResponseState:
+async def tweet_state(tweet: TweetWithItems) -> TweetResponseState | None:
     redis_ = get_redis()
 
     key = str(tweet.id)
     tweet_value: bytes | None = await redis_.get(key)
 
     if not tweet_value:
-        return TweetResponseState.NOT_RESPONDED
+        return None
 
-    data: TweetResponseDataDict
+    data: TweetResponseRawData
 
     try:
         data = json.loads(tweet_value)
     except json.JSONDecodeError:
-        data = {"state": TweetResponseState.SUCCESSFUL.value, "time": tweet_value.decode()}
+        data = {"successful": True, "time": tweet_value.decode()}
         await redis_.set(name=key, value=json.dumps(data), ex=REDIS_EX)
 
-    return TweetResponseState(data["state"])
+    return TweetResponseState(data["successful"])
 
 
-async def mark_responded(tweet: TweetWithItems, new_state: TweetResponseState) -> None:
-    """Signifies that a Tweet has been responded to, and is therefore stored"""
+async def update_tweet_state(tweet: TweetWithItems, *, successful: bool) -> None:
     redis_ = get_redis()
 
     logger.debug(f"STORING TWEET: {tweet.url}")
 
-    data: TweetResponseDataDict = {"state": new_state.value, "time": datetime.now().isoformat()}
+    data: TweetResponseRawData = {"successful": successful, "time": datetime.now().isoformat()}
+
+    if not successful:
+        state = await tweet_state(tweet)
+        if state:
+            data["failed_attempts"] = state.failed_attempts + 1
 
     await redis_.set(name=str(tweet.id), value=json.dumps(data), ex=REDIS_EX)

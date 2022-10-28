@@ -7,7 +7,7 @@ if t.TYPE_CHECKING:
     import tweepy
 
     from csgoinspect.item import Item
-    from csgoinspect.typings import TweetResponseState
+    
 
 
 @dataclass(slots=True)
@@ -16,7 +16,7 @@ class TweetWithItems:
 
     items: tuple[Item, ...]
     tweet: tweepy.Tweet
-    previous_state: TweetResponseState | None = None
+    failed_attempts: int = 0
 
     @property
     def id(self) -> int:

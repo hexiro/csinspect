@@ -18,7 +18,6 @@ from csgoinspect.commons import (
 )
 from csgoinspect.item import Item
 from csgoinspect.tweet import TweetWithItems
-from csgoinspect.typings import TweetResponseState
 
 if t.TYPE_CHECKING:
     import re
@@ -86,7 +85,7 @@ class CSGOInspect:
             logger.info(f"SKIPPING TWEET (Failed To Generate Screenshots): {tweet.url}")
 
             await self.twitter.failed_reply(tweet)
-            await redis_.mark_responded(tweet, TweetResponseState.FAILED)
+            await redis_.update_tweet_state(tweet, successful=False)
             return
 
         logger.info(f"REPLYING TO TWEET: {tweet.url}")
@@ -98,13 +97,12 @@ class CSGOInspect:
             logger.warning(f"ERROR REPLYING: {tweet.url} - {exc}")
 
             await self.twitter.failed_reply(tweet)
-            await redis_.mark_responded(tweet, TweetResponseState.FAILED)
+            await redis_.update_tweet_state(tweet, successful=False)
             return
 
         logger.success(f"REPLIED TO TWEET: {tweet.url}")
 
-        state = TweetResponseState.SUCCESSFUL if all(screenshot_responses) else TweetResponseState.PARTIALLY_SUCCESSFUL
-        await redis_.mark_responded(tweet, state)
+        await redis_.update_tweet_state(tweet, successful=True)
 
     async def process_tweets(self, tweets: t.Iterable[TweetWithItems]) -> None:
         for tweet in tweets:
@@ -131,12 +129,13 @@ class CSGOInspect:
         items = tuple(Item(inspect_link=match.group()) for match in matches)
 
         tweet_with_items = TweetWithItems(items, tweet)
-        response_state = await redis_.response_state(tweet_with_items)
+        tweet_state = await redis_.tweet_state(tweet_with_items)
 
-        if response_state is TweetResponseState.SUCCESSFUL:
-            logger.info(f"SKIPPING TWEET (Already Successfully Responded): {tweet.id}")
-            return None
+        if tweet_state:
+            tweet_with_items.failed_attempts = tweet_state.failed_attempts
 
-        tweet_with_items.previous_state = response_state
+            if tweet_state.successful:
+                logger.info(f"SKIPPING TWEET (Already Successfully Responded): {tweet.id}")
+                return None
 
         return tweet_with_items

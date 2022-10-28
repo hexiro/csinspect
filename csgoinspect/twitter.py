@@ -17,7 +17,7 @@ from csgoinspect.commons import (
     TWITTER_API_KEY_SECRET,
     TWITTER_BEARER_TOKEN,
 )
-from csgoinspect.typings import TweetResponseState
+
 
 if t.TYPE_CHECKING:
     from tweepy.models import Media
@@ -64,7 +64,7 @@ class Twitter:
         await self.v2.create_tweet(in_reply_to_tweet_id=tweet.id, media_ids=media_ids)
 
     async def failed_reply(self, tweet: TweetWithItems) -> None:
-        if tweet.previous_state is TweetResponseState.FAILED:
+        if tweet.failed_attempts > 1:
             # If the tweet has already failed, don't reply again
             return
         try:

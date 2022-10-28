@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import typing as t
-from enum import Enum
-from typing import TypedDict
+from typing import NamedTuple, TypedDict
+
 
 if t.TYPE_CHECKING:
     from datetime import datetime
@@ -45,18 +45,18 @@ class SwapGGScreenshotReady(TypedDict):
     inspectLink: str
 
 
-class TweetResponseState(Enum):
-    SUCCESSFUL = 0
-    FAILED = 1
-    PARTIALLY_SUCCESSFUL = 2
-    NOT_RESPONDED = 3
-
-
-class TweetResponseDataDict(TypedDict):
+class TweetResponseRawData(TypedDict):
     time: str
-    state: int
+    successful: bool
+    failed_attempts: t.NotRequired[int]
 
 
 class TweetResponseData(TypedDict):
     time: datetime
-    state: TweetResponseState
+    successful: bool
+    failed_attempts: t.NotRequired[int]
+
+
+class TweetResponseState(NamedTuple):
+    successful: bool
+    failed_attempts: int = 0
