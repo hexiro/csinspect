@@ -7,7 +7,7 @@ import httpx
 import socketio
 from loguru import logger
 
-from csgoinspect.commons import SKINPORT_ID
+from csgoinspect.commons import PREFER_SKINPORT, SKINPORT_ID
 
 if t.TYPE_CHECKING:
     from csgoinspect.item import Item
@@ -145,7 +145,7 @@ class ScreenshotTools:
     async def screenshot_tweet(self, tweet: TweetWithItems) -> list[bool]:
         screenshot_tasks: list[asyncio.Task[bool]] = []
 
-        prefer_skinport = tweet.author_id == SKINPORT_ID
+        prefer_skinport = PREFER_SKINPORT or tweet.author_id == SKINPORT_ID
 
         for item in tweet.items:
             screenshot_coro = self.screenshot(item, prefer_skinport=prefer_skinport)
