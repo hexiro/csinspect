@@ -19,15 +19,15 @@ if t.TYPE_CHECKING:
 
 
 @lru_cache(maxsize=None)
-def get_redis() -> Redis:
-    return Redis(host=REDIS_HOST, password=REDIS_PASSWORD, port=REDIS_PORT, db=REDIS_DATABASE)
+def get_redis() -> Redis[str]:
+    return Redis(host=REDIS_HOST, password=REDIS_PASSWORD, port=REDIS_PORT, db=REDIS_DATABASE, decode_responses=True)
 
 
 async def tweet_state(tweet: TweetWithItems) -> TweetResponseState | None:
     redis_ = get_redis()
 
     key = str(tweet.id)
-    tweet_value: bytes | None = await redis_.get(key)
+    tweet_value: str | None = await redis_.get(key)
 
     if not tweet_value:
         return None
