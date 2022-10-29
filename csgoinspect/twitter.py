@@ -73,7 +73,7 @@ class Twitter:
             )
         except tweepy.errors.HTTPException:
             # silently ignore if we can't reply (this could be due to permissions to reply to a tweet)
-            logger.exception("FAILED TO SEND FAILED REPLY")
+            logger.warning("FAILED TO SEND FAILED REPLY")
         return None
 
     async def upload_items(self, items: t.Iterable[Item]) -> list[Media]:

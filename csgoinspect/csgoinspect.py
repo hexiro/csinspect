@@ -9,8 +9,10 @@ from loguru import logger
 
 from csgoinspect import redis_, screenshot_tools, twitter
 from csgoinspect.commons import (
+    DEV_ID,
     INSPECT_LINK_QUERY,
     INSPECT_URL_REGEX,
+    IS_DEV,
     LIVE_RULES,
     MAX_FAILED_ATTEMPTS,
     TWEET_EXPANSIONS,
@@ -123,9 +125,13 @@ class CSGOInspect:
             logger.info(f"SKIPPING TWEET (Has Attachments): {tweet.id} ")
             return None
 
-        # if IS_DEV and DEV_ID and tweet.author_id != DEV_ID:
-        #     logger.info(f"SKIPPING TWEET (Dev Mode & Not Dev): {tweet.id}, {tweet.author_id} ")
-        #     return None
+        if DEV_ID:
+            if IS_DEV and tweet.author_id != DEV_ID:
+                logger.info(f"SKIPPING TWEET (Dev Mode & Not Dev): {tweet.id}, {tweet.author_id} ")
+                return None
+            if not IS_DEV and tweet.author_id == DEV_ID:
+                logger.info(f"SKIPPING TWEET (Not Dev Mode & Dev): {tweet.id}, {tweet.author_id} ")
+                return None
 
         items = tuple(Item(inspect_link=match.group()) for match in matches)
 

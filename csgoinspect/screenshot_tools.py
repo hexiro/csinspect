@@ -56,7 +56,7 @@ class ScreenshotTools:
 
             return
 
-        logger.debug(f"SCREENSHOT RECEIVED : {unquoted_inspect_link}")
+        # logger.debug(f"SCREENSHOT RECEIVED : {unquoted_inspect_link}")
 
     async def screenshot(self, item: Item, prefer_skinport: bool = False) -> bool:
         # sourcery skip: assign-if-exp, introduce-default-else, move-assign-in-block, swap-if-expression
@@ -78,7 +78,7 @@ class ScreenshotTools:
             logger.warning(f"SCREENSHOT FAILED: {item.inspect_link}")
             return False
 
-        logger.debug(f"SCREENSHOT COMPLETE: {item.image_link}")
+        logger.debug(f"SCREENSHOT COMPLETE: {item.image_link} {swapgg_success=} {skinport_success=}")
         return True
 
     async def _swap_gg_screenshot(self, item: Item) -> bool:
