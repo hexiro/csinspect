@@ -21,5 +21,5 @@
 <br/>
 
 <a href="https://twitter.com/csgoinspect" target="_blank" rel="noreferrer">
-  <img style="border-radius:4px;" src="https://i.imgur.com/mF2sybC.png"/>
+  <img style="border-radius:4px;" src="https://i.imgur.com/2AjidZe.png"/>
 </a>
