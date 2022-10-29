@@ -12,6 +12,7 @@ from csgoinspect.commons import (
     INSPECT_LINK_QUERY,
     INSPECT_URL_REGEX,
     LIVE_RULES,
+    MAX_FAILED_ATTEMPTS,
     TWEET_EXPANSIONS,
     TWEET_TWEET_FIELDS,
     TWEET_USER_FIELDS,
@@ -132,7 +133,7 @@ class CSGOInspect:
         tweet_state = await redis_.tweet_state(tweet_with_items)
 
         if tweet_state:
-            if tweet_state.failed_attempts > 5:
+            if tweet_state.failed_attempts > MAX_FAILED_ATTEMPTS:
                 logger.info(f"SKIPPING TWEET (Too Many Failed Attempts): {tweet.id}")
                 return None
 

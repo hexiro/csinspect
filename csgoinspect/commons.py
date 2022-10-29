@@ -20,6 +20,8 @@ DEV_ID = int(os.environ["DEV_ID"]) if IS_DEV else None
 SKINPORT_ID = 973912423295078400
 PREFER_SKINPORT = IS_DEV and os.getenv("PREFER_SKINPORT", "false").lower() == "true"
 
+MAX_FAILED_ATTEMPTS = 5
+
 LIVE_RULES = [
     tweepy.StreamRule('"+csgo_econ_action_preview"', tag="+csgo_econ_action_preview'"),
     tweepy.StreamRule('"steam://rungame/730"', tag="steam://rungame/730"),

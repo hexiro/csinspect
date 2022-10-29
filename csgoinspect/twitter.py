@@ -18,7 +18,6 @@ from csgoinspect.commons import (
     TWITTER_BEARER_TOKEN,
 )
 
-
 if t.TYPE_CHECKING:
     from tweepy.models import Media
 
