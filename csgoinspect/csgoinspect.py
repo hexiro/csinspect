@@ -132,10 +132,14 @@ class CSGOInspect:
         tweet_state = await redis_.tweet_state(tweet_with_items)
 
         if tweet_state:
-            tweet_with_items.failed_attempts = tweet_state.failed_attempts
+            if tweet_state.failed_attempts > 5:
+                logger.info(f"SKIPPING TWEET (Too Many Failed Attempts): {tweet.id}")
+                return None
 
             if tweet_state.successful:
                 logger.info(f"SKIPPING TWEET (Already Successfully Responded): {tweet.id}")
                 return None
+
+            tweet_with_items.failed_attempts = tweet_state.failed_attempts
 
         return tweet_with_items
