@@ -32,13 +32,7 @@ async def tweet_state(tweet: TweetWithItems) -> TweetResponseState | None:
     if not tweet_value:
         return None
 
-    data: TweetResponseRawData
-
-    try:
-        data = json.loads(tweet_value)
-    except json.JSONDecodeError:
-        data = {"successful": True, "time": tweet_value.decode()}
-        await redis_.set(name=key, value=json.dumps(data), ex=REDIS_EX)
+    data: TweetResponseRawData = json.loads(tweet_value)
 
     return TweetResponseState(data["successful"])
 
