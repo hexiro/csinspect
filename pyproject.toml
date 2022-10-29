@@ -25,6 +25,7 @@ flake8 = "^5.0.4"
 flake8-future-annotations = "^1.0.0"
 flake8-simplify = "^0.19.3" 
 types-redis = "^4.3.21.3"
+flake8-type-checking = "^2.2.0"
 
 [tool.black]
 line-length = 121

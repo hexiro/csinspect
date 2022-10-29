@@ -4,10 +4,8 @@ import typing as t
 from dataclasses import dataclass
 
 if t.TYPE_CHECKING:
-    import tweepy
-
     from csgoinspect.item import Item
-    
+    import tweepy
 
 
 @dataclass(slots=True)
