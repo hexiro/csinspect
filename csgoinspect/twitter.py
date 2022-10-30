@@ -1,115 +1,119 @@
 from __future__ import annotations
 
-import time
-from typing import re
+import asyncio
+import io
+import typing as t
 
-import tweepy.models
+import httpx
+import tweepy
+import tweepy.asynchronous
+import tweepy.errors
 from loguru import logger
 
-from csgoinspect import redis_
-from csgoinspect.commons import TWITTER_BEARER_TOKEN, TWITTER_API_KEY, TWITTER_API_KEY_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET, \
-    INSPECT_URL_REGEX, LIVE_RULES, INSPECT_LINK_QUERY, TWEET_EXPANSIONS, TWEET_TWEET_FIELDS, TWEET_USER_FIELDS
-from csgoinspect.item import Item
-from csgoinspect.tweet import ItemsTweet
+from csgoinspect.commons import (
+    TWITTER_ACCESS_TOKEN,
+    TWITTER_ACCESS_TOKEN_SECRET,
+    TWITTER_API_KEY,
+    TWITTER_API_KEY_SECRET,
+    TWITTER_BEARER_TOKEN,
+)
+
+if t.TYPE_CHECKING:
+    from tweepy.models import Media
+
+    from csgoinspect.item import Item
+    from csgoinspect.tweet import TweetWithItems
 
 
-class Twitter(tweepy.Client):
-    """Merged wrapper of v1, v2, and Streaming APIs provided by Tweepy."""
+class Twitter:
+    """Merged wrapper of Twitter's v1, v2, and Steaming API provided by Tweepy."""
 
     def __init__(self):
-        super().__init__(
+        self.v2 = tweepy.asynchronous.AsyncClient(
             bearer_token=TWITTER_BEARER_TOKEN,
             consumer_key=TWITTER_API_KEY,
             consumer_secret=TWITTER_API_KEY_SECRET,
             access_token=TWITTER_ACCESS_TOKEN,
-            access_token_secret=TWITTER_ACCESS_TOKEN_SECRET
+            access_token_secret=TWITTER_ACCESS_TOKEN_SECRET,
         )
-        self._items_tweets: list[ItemsTweet] = []
+        self.v1 = tweepy.API(
+            tweepy.OAuthHandler(
+                consumer_key=TWITTER_API_KEY,
+                consumer_secret=TWITTER_API_KEY_SECRET,
+                access_token=TWITTER_ACCESS_TOKEN,
+                access_token_secret=TWITTER_ACCESS_TOKEN_SECRET,
+            )
+        )
 
-        self._twitter_v1 = tweepy.API(tweepy.OAuthHandler(
-            consumer_key=TWITTER_API_KEY,
-            consumer_secret=TWITTER_API_KEY_SECRET,
-            access_token=TWITTER_ACCESS_TOKEN,
-            access_token_secret=TWITTER_ACCESS_TOKEN_SECRET
-        ))
+        self.live = tweepy.asynchronous.AsyncStreamingClient(TWITTER_BEARER_TOKEN)
 
-        self._live_twitter = tweepy.StreamingClient(TWITTER_BEARER_TOKEN)
-        self._live_twitter.add_rules(LIVE_RULES)
-        self._live_twitter.on_connect = self.on_connect
-        self._live_twitter.on_disconnect = self.on_disconnect
-        self._live_twitter.on_tweet = self.on_tweet
+        async def on_connect() -> None:
+            logger.debug("CONNECTED: Twitter Streaming API")
 
-    @staticmethod
-    def on_connect():
-        logger.debug("connected!")
+        async def on_disconnect() -> None:
+            logger.debug("CONNECTED: Twitter Streaming API")
 
-    @staticmethod
-    def on_disconnect():
-        logger.warning("disconnected from Twitter :(")
+        self.live.on_connect = on_connect
+        self.live.on_disconnect = on_disconnect
 
-    def on_tweet(self, tweet: tweepy.Tweet):
-        items_tweet = self._tweet_to_items_tweet(tweet)
-        if not items_tweet:
+    async def reply(self, tweet: TweetWithItems) -> None:
+        media_uploads = await self.upload_items(tweet.items)
+        media_ids: list[int] = [media.media_id for media in media_uploads]  # type: ignore
+
+        await self.v2.create_tweet(in_reply_to_tweet_id=tweet.id, media_ids=media_ids)
+
+    async def failed_reply(self, tweet: TweetWithItems) -> None:
+        if tweet.failed_attempts > 1:
+            # If the tweet has already failed, don't reply again
             return
-        self._items_tweets.append(items_tweet)
+        try:
+            await self.v2.create_tweet(
+                in_reply_to_tweet_id=tweet.id,
+                text="Unfortunately, I couldn't generate a screenshot for you at this time. I will retry in 10 minutes.",
+            )
+        except tweepy.errors.HTTPException:
+            # silently ignore if we can't reply (this could be due to permissions to reply to a tweet)
+            logger.warning("FAILED TO SEND FAILED REPLY")
+        return None
 
-    def live(self):
-        while True:
-            if not self._live_twitter.running:
-                self._start()
-            if self._items_tweets:
-                items_tweet = self._items_tweets.pop(0)
-                logger.info(f"received new tweet: {items_tweet!r}")
-                yield items_tweet
-            time.sleep(10)
+    async def upload_items(self, items: t.Iterable[Item]) -> list[Media]:
+        async def fetch_screenshot(session: httpx.AsyncClient, image_link: str) -> tuple[str, io.BytesIO]:
+            screenshot = await session.get(image_link)
+            return (image_link, io.BytesIO(screenshot.content))
 
-    def _tweet_to_items_tweet(self, tweet: tweepy.Tweet) -> ItemsTweet | None:
-        # Twitter only allows 4 images
-        matches: list[re.Match] = list(INSPECT_URL_REGEX.finditer(tweet.text))
-        matches = matches[:4]
-        if not matches:
-            logger.debug(f"tweet has no inspect link matches -- tweet: {tweet!r}")
-            return None
-        if tweet.attachments:
-            # potentially already has screenshot (this conditional could be subject to change)
-            logger.debug(f"tweet has attachments -- tweet: {tweet!r}")
-            return None
-        items = [Item(inspect_link=match.group()) for match in matches]
-        items_tweet = ItemsTweet(tweet.data)
-        items_tweet.assign_items(*items)
-        for item in items:
-            item._tweet = items_tweet
-        items_tweet._twitter = self
-        return items_tweet
+        async with httpx.AsyncClient() as session:
+            screenshot_tasks: list[asyncio.Task[tuple[str, io.BytesIO]]] = []
 
-    def find_tweets(self) -> list[ItemsTweet]:
-        search_results: tweepy.Response = self.search_recent_tweets(
-            query=INSPECT_LINK_QUERY,
-            expansions=TWEET_EXPANSIONS,
-            tweet_fields=TWEET_TWEET_FIELDS,
-            user_fields=TWEET_USER_FIELDS,
-        )
-        tweets: list[tweepy.Tweet] = search_results.data
-        items_tweets: list[ItemsTweet] = []
-        for tweet in tweets:
-            items_tweet = self._tweet_to_items_tweet(tweet)
-            if not items_tweet:
-                continue
-            if redis_.already_responded(items_tweet):
-                continue
-            items_tweets.append(items_tweet)
-        return items_tweets
+            for item in items:
+                if not item.image_link:
+                    continue
 
-    def _start(self):
-        logger.debug("connected to live twitter")
-        self._live_twitter.filter(
-            expansions=TWEET_EXPANSIONS,
-            tweet_fields=TWEET_TWEET_FIELDS,
-            user_fields=TWEET_USER_FIELDS,
-            threaded=True
-        )
+                screenshot_coro = fetch_screenshot(session, item.image_link)
+                screenshot_task = asyncio.create_task(screenshot_coro)  # type: ignore
 
-    def media_upload(self, filename, *, file=None, chunked=False,
-                     media_category=None, additional_owners=None, **kwargs) -> tweepy.models.Media:
-        return self._twitter_v1.media_upload(filename=filename, file=file, chunked=chunked,
-                                             media_category=media_category, additional_owners=additional_owners, **kwargs)
+                screenshot_tasks.append(screenshot_task)
+
+            screenshots: list[tuple[str, io.BytesIO]] = await asyncio.gather(*screenshot_tasks)
+
+        media_tasks: list[asyncio.Task[Media]] = []
+        for image_link, screenshot in screenshots:
+            media_coro = self._media_upload(filename=image_link, file=screenshot)
+            media_task = asyncio.create_task(media_coro)
+            media_tasks.append(media_task)
+
+        media_uploads: list[Media] = await asyncio.gather(*media_tasks)
+        return media_uploads
+
+    async def _media_upload(
+        self, filename, *, file=None, chunked=False, media_category=None, additional_owners=None, **kwargs
+    ) -> Media:
+        # Uses Twitter v1 API (no async support with tweepy) so we need to run in executor
+        return await asyncio.to_thread(
+            self.v1.media_upload,
+            filename=filename,
+            file=file,
+            chunked=chunked,
+            media_category=media_category,
+            additional_owners=additional_owners,
+            **kwargs,
+        )  # type: ignore
