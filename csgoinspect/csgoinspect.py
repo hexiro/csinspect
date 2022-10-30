@@ -59,6 +59,7 @@ class CSGOInspect:
         async def incrementally_find_tweets() -> None:
             logger.debug("STARTING: INCREMENTALLY FIND TWEETS")
             while True:
+                logger.info("FINDING TWEETS (Past 10 Minutes)")
                 try:
                     items_tweets = await self.find_tweets()
                     await self.process_tweets(items_tweets)

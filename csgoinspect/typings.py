@@ -44,16 +44,22 @@ class SwapGGScreenshotReady(TypedDict):
     inspectLink: str
 
 
-class TweetResponseRawData(TypedDict):
+class _BaseTweetResponseRawData(TypedDict):
     time: str
     successful: bool
-    failed_attempts: t.NotRequired[int]
 
 
-class TweetResponseData(TypedDict):
+class TweetResponseRawData(_BaseTweetResponseRawData, total=False):
+    failed_attempts: int
+
+
+class _BaseTweetResponseData(TypedDict):
     time: datetime
     successful: bool
-    failed_attempts: t.NotRequired[int]
+
+
+class TweetResponseData(_BaseTweetResponseData, total=False):
+    failed_attempts: int
 
 
 class TweetResponseState(NamedTuple):
