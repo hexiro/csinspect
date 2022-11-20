@@ -54,8 +54,6 @@ class ScreenshotTools:
 
             return
 
-        # logger.debug(f"SCREENSHOT RECEIVED : {unquoted_inspect_link}")
-
     async def screenshot(self, item: Item, prefer_skinport: bool = False) -> bool:
         # sourcery skip: assign-if-exp, introduce-default-else, move-assign-in-block, swap-if-expression
         logger.debug(f"SCREENSHOTTING: {item.inspect_link}")

@@ -68,6 +68,7 @@ class CSGOInspect:
                     await self.process_tweets(items_tweets)
                 except Exception:
                     logger.exception("Error finding tweets")
+                logger.info("DONE FINDING TWEETS (Past 10 Minutes)")
                 await asyncio.sleep(600)
 
         task_one = asyncio.create_task(incrementally_find_tweets())
