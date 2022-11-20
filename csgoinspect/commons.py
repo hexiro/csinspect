@@ -15,7 +15,8 @@ if DOTENV_PATH.is_file():
 
 
 IS_DEV = os.getenv("IS_DEV", "false").lower() == "true"
-DEV_ID = int(os.environ["DEV_ID"]) if IS_DEV else None
+ONLY_RESPOND_TO_DEV = IS_DEV and os.getenv("ONLY_RESPOND_TO_DEV", "false").lower() == "true"
+DEV_ID = int(os.environ["DEV_ID"]) if ONLY_RESPOND_TO_DEV else None
 
 SKINPORT_ID = 973912423295078400
 PREFER_SKINPORT = IS_DEV and os.getenv("PREFER_SKINPORT", "false").lower() == "true"

@@ -15,6 +15,7 @@ from csgoinspect.commons import (
     IS_DEV,
     LIVE_RULES,
     MAX_FAILED_ATTEMPTS,
+    ONLY_RESPOND_TO_DEV,
     TWEET_EXPANSIONS,
     TWEET_TWEET_FIELDS,
     TWEET_USER_FIELDS,
@@ -127,7 +128,7 @@ class CSGOInspect:
             return None
 
         if DEV_ID:
-            if IS_DEV and tweet.author_id != DEV_ID:
+            if IS_DEV and ONLY_RESPOND_TO_DEV and tweet.author_id != DEV_ID:
                 logger.info(f"SKIPPING TWEET (Dev Mode & Not Dev): {tweet.id}, {tweet.author_id} ")
                 return None
             if not IS_DEV and tweet.author_id == DEV_ID:
