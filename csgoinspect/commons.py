@@ -19,7 +19,6 @@ ONLY_RESPOND_TO_DEV = IS_DEV and os.getenv("ONLY_RESPOND_TO_DEV", "false").lower
 DEV_DONT_SEND_TWEETS = IS_DEV and os.getenv("DEV_DONT_SEND_TWEETS", "false").lower() == "true"
 DEV_ID = int(os.environ["DEV_ID"]) if ONLY_RESPOND_TO_DEV else None
 
-SKINPORT_ID = 973912423295078400
 PREFER_SKINPORT = IS_DEV and os.getenv("PREFER_SKINPORT", "false").lower() == "true"
 
 MAX_FAILED_ATTEMPTS = 5
@@ -33,8 +32,8 @@ INSPECT_URL_REGEX = re.compile(
     "(steam://rungame/730/[0-9]+/(?:\\+| )csgo_econ_action_preview(?:%20| ))(?:(?P<S>S[0-9]+)|(?P<M>M[0-9]+))(?P<A>A[0-9]+)(?P<D>D[0-9]+)"
 )
 
-TWEET_EXPANSIONS = ["referenced_tweets.id", "author_id", "referenced_tweets.id.author_id", "attachments.media_keys"]
-TWEET_TWEET_FIELDS = ["id", "text", "attachments"]
+TWEET_EXPANSIONS = ["author_id", "attachments.media_keys"]
+TWEET_TWEET_FIELDS = ["id", "text", "attachments", "conversation_id"]
 TWEET_USER_FIELDS = ["id", "name", "username"]
 
 TWITTER_BEARER_TOKEN = os.environ["TWITTER_BEARER_TOKEN"]
