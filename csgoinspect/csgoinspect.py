@@ -9,6 +9,7 @@ from loguru import logger
 
 from csgoinspect import redis_, screenshot_tools, twitter
 from csgoinspect.commons import (
+    DEV_DONT_SEND_TWEETS,
     DEV_ID,
     INSPECT_LINK_QUERY,
     INSPECT_URL_REGEX,
@@ -95,6 +96,10 @@ class CSGOInspect:
 
         logger.info(f"REPLYING TO TWEET: {tweet.url}")
         logger.debug(f"{tweet.items=}")
+
+        if DEV_DONT_SEND_TWEETS:
+            logger.info("SKIPPING TWEET (DEV_DONT_SEND_TWEETS IS ENABLED)")
+            return
 
         try:
             await self.twitter.reply(tweet)
