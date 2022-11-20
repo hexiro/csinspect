@@ -9,12 +9,15 @@ from loguru import logger
 
 from csgoinspect import redis_, screenshot_tools, twitter
 from csgoinspect.commons import (
+    DEV_DONT_SEND_TWEETS,
     DEV_ID,
     INSPECT_LINK_QUERY,
     INSPECT_URL_REGEX,
     IS_DEV,
     LIVE_RULES,
     MAX_FAILED_ATTEMPTS,
+    ONLY_RESPOND_TO_DEV,
+    PREFER_SKINPORT,
     TWEET_EXPANSIONS,
     TWEET_TWEET_FIELDS,
     TWEET_USER_FIELDS,
@@ -65,6 +68,7 @@ class CSGOInspect:
                     await self.process_tweets(items_tweets)
                 except Exception:
                     logger.exception("Error finding tweets")
+                logger.info("DONE FINDING TWEETS (Past 10 Minutes)")
                 await asyncio.sleep(600)
 
         task_one = asyncio.create_task(incrementally_find_tweets())
@@ -81,7 +85,11 @@ class CSGOInspect:
 
     async def process_tweet(self, tweet: TweetWithItems) -> None:
         logger.info(f"PROCESSING TWEET: {tweet.url}")
-        screenshot_responses = await self.screenshots.screenshot_tweet(tweet)
+
+        prefer_skinport = PREFER_SKINPORT or await self._prefer_skinport(tweet)
+        logger.debug(f"SCREENSHOT PREFER SKINPORT: {prefer_skinport}")
+
+        screenshot_responses = await self.screenshots.screenshot_tweet(tweet, prefer_skinport=prefer_skinport)
 
         logger.debug(f"SCREENSHOT RESPONSES: {screenshot_responses}")
 
@@ -94,6 +102,10 @@ class CSGOInspect:
 
         logger.info(f"REPLYING TO TWEET: {tweet.url}")
         logger.debug(f"{tweet.items=}")
+
+        if DEV_DONT_SEND_TWEETS:
+            logger.info("SKIPPING TWEET (DEV_DONT_SEND_TWEETS IS ENABLED)")
+            return
 
         try:
             await self.twitter.reply(tweet)
@@ -113,6 +125,13 @@ class CSGOInspect:
             coro = self.process_tweet(tweet)
             asyncio.create_task(coro)
 
+    async def _prefer_skinport(self, tweet: TweetWithItems) -> bool:
+        parent_tweet_id: int = tweet.tweet.conversation_id
+
+        tweet_from_reference: tweepy.Response = await self.twitter.v2.get_tweet(parent_tweet_id, expansions="author_id")  # type: ignore
+        tweet_users: list[tweepy.User] = tweet_from_reference.includes["users"]
+        return any(user.username == "Skinport" for user in tweet_users)
+
     async def _parse_tweet(self, tweet: tweepy.Tweet) -> TweetWithItems | None:
         # Twitter only allows 4 images
         matches: list[re.Match] = list(INSPECT_URL_REGEX.finditer(tweet.text))
@@ -122,12 +141,8 @@ class CSGOInspect:
             logger.info(f"SKIPPING TWEET (No Inspect Links): {tweet.id} ")
             return None
 
-        if tweet.attachments:  # potentially already has screenshot
-            logger.info(f"SKIPPING TWEET (Has Attachments): {tweet.id} ")
-            return None
-
         if DEV_ID:
-            if IS_DEV and tweet.author_id != DEV_ID:
+            if IS_DEV and ONLY_RESPOND_TO_DEV and tweet.author_id != DEV_ID:
                 logger.info(f"SKIPPING TWEET (Dev Mode & Not Dev): {tweet.id}, {tweet.author_id} ")
                 return None
             if not IS_DEV and tweet.author_id == DEV_ID:

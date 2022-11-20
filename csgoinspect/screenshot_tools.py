@@ -7,8 +7,6 @@ import httpx
 import socketio
 from loguru import logger
 
-from csgoinspect.commons import PREFER_SKINPORT, SKINPORT_ID
-
 if t.TYPE_CHECKING:
     from csgoinspect.item import Item
     from csgoinspect.tweet import TweetWithItems
@@ -56,8 +54,6 @@ class ScreenshotTools:
 
             return
 
-        # logger.debug(f"SCREENSHOT RECEIVED : {unquoted_inspect_link}")
-
     async def screenshot(self, item: Item, prefer_skinport: bool = False) -> bool:
         # sourcery skip: assign-if-exp, introduce-default-else, move-assign-in-block, swap-if-expression
         logger.debug(f"SCREENSHOTTING: {item.inspect_link}")
@@ -91,7 +87,7 @@ class ScreenshotTools:
                 )
             data: SwapGGScreenshotResponse = response.json()
         except httpx.HTTPError:
-            logger.exception(f"HTTP ERROR: {item.inspect_link}")
+            logger.exception(f"SWAP.GG SCREENSHOT FAILED (HTTP ERROR: {item.inspect_link})")
             return False
 
         if data["status"] != "OK":
@@ -140,12 +136,11 @@ class ScreenshotTools:
             item.image_link = str(response.next_request.url)
             return True
 
+        logger.debug(f"SKINPORT SCREENSHOT FAILED: {response.status_code=}, {response.next_request=}")
         return False
 
-    async def screenshot_tweet(self, tweet: TweetWithItems) -> list[bool]:
+    async def screenshot_tweet(self, tweet: TweetWithItems, prefer_skinport: bool = False) -> list[bool]:
         screenshot_tasks: list[asyncio.Task[bool]] = []
-
-        prefer_skinport = PREFER_SKINPORT or tweet.author_id == SKINPORT_ID
 
         for item in tweet.items:
             screenshot_coro = self.screenshot(item, prefer_skinport=prefer_skinport)
