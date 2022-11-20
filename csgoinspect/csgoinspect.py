@@ -140,10 +140,6 @@ class CSGOInspect:
             logger.info(f"SKIPPING TWEET (No Inspect Links): {tweet.id} ")
             return None
 
-        if tweet.attachments:  # potentially already has screenshot
-            logger.info(f"SKIPPING TWEET (Has Attachments): {tweet.id} ")
-            return None
-
         if DEV_ID:
             if IS_DEV and ONLY_RESPOND_TO_DEV and tweet.author_id != DEV_ID:
                 logger.info(f"SKIPPING TWEET (Dev Mode & Not Dev): {tweet.id}, {tweet.author_id} ")
