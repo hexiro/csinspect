@@ -63,7 +63,7 @@ class Twitter:
         await self.v2.create_tweet(in_reply_to_tweet_id=tweet.id, media_ids=media_ids)
 
     async def failed_reply(self, tweet: TweetWithItems) -> None:
-        if tweet.failed_attempts > 1:
+        if tweet.failed_attempts >= 1:
             # If the tweet has already failed, don't reply again
             return
         try:
