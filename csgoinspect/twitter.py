@@ -62,20 +62,6 @@ class Twitter:
 
         await self.v2.create_tweet(in_reply_to_tweet_id=tweet.id, media_ids=media_ids)
 
-    async def failed_reply(self, tweet: TweetWithItems) -> None:
-        if tweet.failed_attempts >= 1:
-            # If the tweet has already failed, don't reply again
-            return
-        try:
-            await self.v2.create_tweet(
-                in_reply_to_tweet_id=tweet.id,
-                text="Unfortunately, I couldn't generate a screenshot for you at this time. I will retry in 10 minutes.",
-            )
-        except tweepy.errors.HTTPException:
-            # silently ignore if we can't reply (this could be due to permissions to reply to a tweet)
-            logger.warning("FAILED TO SEND FAILED REPLY")
-        return None
-
     async def upload_items(self, items: t.Iterable[Item]) -> list[Media]:
         async def fetch_screenshot(session: httpx.AsyncClient, image_link: str) -> tuple[str, io.BytesIO]:
             screenshot = await session.get(image_link)
