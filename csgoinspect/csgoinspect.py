@@ -96,7 +96,6 @@ class CSGOInspect:
         if not any(screenshot_responses):
             logger.info(f"SKIPPING TWEET (Failed To Generate Screenshots): {tweet.url}")
 
-            await self.twitter.failed_reply(tweet)
             await redis_.update_tweet_state(tweet, successful=False)
             return
 
@@ -112,7 +111,6 @@ class CSGOInspect:
         except tweepy.errors.HTTPException as exc:
             logger.warning(f"ERROR REPLYING: {tweet.url} - {exc}")
 
-            await self.twitter.failed_reply(tweet)
             await redis_.update_tweet_state(tweet, successful=False)
             return
 
