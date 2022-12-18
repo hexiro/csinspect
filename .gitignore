@@ -3,3 +3,4 @@ logs/
 .idea/
 *.pyc
 .python-version
+requirements.txt
