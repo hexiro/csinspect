@@ -139,7 +139,9 @@ class ScreenshotTools:
         logger.debug(f"SKINPORT SCREENSHOT FAILED: {response.status_code=}, {response.next_request=}")
         return False
 
-    async def screenshot_tweet(self: ScreenshotTools, tweet: TweetWithItems, prefer_skinport: bool = False) -> list[bool]:
+    async def screenshot_tweet(
+        self: ScreenshotTools, tweet: TweetWithItems, prefer_skinport: bool = False
+    ) -> list[bool]:
         screenshot_tasks: list[asyncio.Task[bool]] = []
 
         for item in tweet.items:
