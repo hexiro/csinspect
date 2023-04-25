@@ -28,7 +28,7 @@ if t.TYPE_CHECKING:
 class Twitter:
     """Merged wrapper of Twitter's v1, v2, and Steaming API provided by Tweepy."""
 
-    def __init__(self):
+    def __init__(self: Twitter) -> None:
         self.v2 = tweepy.asynchronous.AsyncClient(
             bearer_token=TWITTER_BEARER_TOKEN,
             consumer_key=TWITTER_API_KEY,
@@ -56,13 +56,13 @@ class Twitter:
         self.live.on_connect = on_connect
         self.live.on_disconnect = on_disconnect
 
-    async def reply(self, tweet: TweetWithItems) -> None:
+    async def reply(self: Twitter, tweet: TweetWithItems) -> None:
         media_uploads = await self.upload_items(tweet.items)
         media_ids: list[int] = [media.media_id for media in media_uploads]  # type: ignore
 
         await self.v2.create_tweet(in_reply_to_tweet_id=tweet.id, media_ids=media_ids)
 
-    async def upload_items(self, items: t.Iterable[Item]) -> list[Media]:
+    async def upload_items(self: Twitter, items: t.Iterable[Item]) -> list[Media]:
         async def fetch_screenshot(session: httpx.AsyncClient, image_link: str) -> tuple[str, io.BytesIO]:
             screenshot = await session.get(image_link)
             return (image_link, io.BytesIO(screenshot.content))
@@ -91,7 +91,15 @@ class Twitter:
         return media_uploads
 
     async def _media_upload(
-        self, filename, *, file=None, chunked=False, media_category=None, additional_owners=None, **kwargs
+        self: Twitter,
+        filename: str | None,
+        *,
+        file: io.BytesIO | None = None,
+        chunked: bool = False,
+        # https://developer.twitter.com/en/docs/twitter-api/v1/media/upload-media/api-reference/post-media-upload
+        media_category: t.Literal["amplify_video", "tweet_gif", "tweet_image", "tweet_video"] | None = None,
+        additional_owners: str | None = None,
+        **kwargs: t.Any,
     ) -> Media:
         # Uses Twitter v1 API (no async support with tweepy) so we need to run in executor
         return await asyncio.to_thread(

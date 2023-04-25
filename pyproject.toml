@@ -48,3 +48,6 @@ ignore_missing_imports = true
 
 [tool.ruff]
 select = ["ANN", "TCH", "RUF", "SIM"]
+
+[tool.ruff.flake8-annotations]
+allow-star-arg-any = true
