@@ -95,7 +95,7 @@ class Twitter:
     ) -> Media:
         # Uses Twitter v1 API (no async support with tweepy) so we need to run in executor
         return await asyncio.to_thread(
-            self.v1.media_upload,
+            self.v1.media_upload,  # type: ignore
             filename=filename,
             file=file,
             chunked=chunked,
