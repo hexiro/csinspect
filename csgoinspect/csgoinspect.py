@@ -39,8 +39,11 @@ class CSGOInspect:
         tweet_with_items = await self._parse_tweet(tweet)
         if not tweet_with_items:
             return
+        task_set: set[asyncio.Task[None]] = set()
         coro = self.process_tweet(tweet_with_items)
-        asyncio.create_task(coro)
+        task = asyncio.create_task(coro)
+        task_set.add(task)
+        task.add_done_callback(task_set.discard)
 
     async def find_tweets(self: CSGOInspect) -> list[TweetWithItems]:
         search_results: tweepy.Response = await self.twitter.v2.search_recent_tweets(
@@ -119,9 +122,12 @@ class CSGOInspect:
         await redis_.update_tweet_state(tweet, successful=True)
 
     async def process_tweets(self: CSGOInspect, tweets: t.Iterable[TweetWithItems]) -> None:
+        task_set: set[asyncio.Task[None]] = set()
         for tweet in tweets:
             coro = self.process_tweet(tweet)
-            asyncio.create_task(coro)
+            task = asyncio.create_task(coro)
+            task_set.add(task)
+            task.add_done_callback(task_set.discard)
 
     async def _prefer_skinport(self: CSGOInspect, tweet: TweetWithItems) -> bool:
         parent_tweet_id: int = tweet.tweet.conversation_id
