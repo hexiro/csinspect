@@ -15,6 +15,7 @@ python-socketio = "^5.7.2"
 python-dotenv = "^0.21.0"
 loguru = "^0.6.0"
 sentry-sdk = "^1.10.1"
+ruff = "^0.0.263"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^2.20.0"
@@ -45,3 +46,5 @@ warn_unused_configs = true
 show_error_codes = true
 ignore_missing_imports = true
 
+[tool.ruff]
+select = ["ANN", "TCH", "RUF", "SIM"]
