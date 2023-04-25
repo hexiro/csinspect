@@ -21,7 +21,7 @@ class ScreenshotTools:
         "Referrer-Policy": "strict-origin-when-cross-origin",
     }
 
-    def __init__(self) -> None:
+    def __init__(self: ScreenshotTools) -> None:
         self.swap_gg_socket = socketio.AsyncClient(handle_sigint=True)
         self.screenshot_queue: set[Item] = set()
 
@@ -35,7 +35,7 @@ class ScreenshotTools:
         self.swap_gg_socket.on("disconnect", on_disconnect)
         self.swap_gg_socket.on("screenshot:ready", self.on_swap_gg_screenshot)
 
-    async def on_swap_gg_screenshot(self, data: SwapGGScreenshotReady) -> None:
+    async def on_swap_gg_screenshot(self: ScreenshotTools, data: SwapGGScreenshotReady) -> None:
         def find_item(unquoted_inspect_link: str) -> Item | None:
             for item in self.screenshot_queue:
                 if item.unquoted_inspect_link == unquoted_inspect_link:
@@ -54,7 +54,7 @@ class ScreenshotTools:
 
             return
 
-    async def screenshot(self, item: Item, prefer_skinport: bool = False) -> bool:
+    async def screenshot(self: ScreenshotTools, item: Item, prefer_skinport: bool = False) -> bool:
         # sourcery skip: assign-if-exp, introduce-default-else, move-assign-in-block, swap-if-expression
         logger.debug(f"SCREENSHOTTING: {item.inspect_link}")
 
@@ -77,7 +77,7 @@ class ScreenshotTools:
         logger.debug(f"SCREENSHOT COMPLETE: {item.image_link} {swapgg_success=} {skinport_success=}")
         return True
 
-    async def _swap_gg_screenshot(self, item: Item) -> bool:
+    async def _swap_gg_screenshot(self: ScreenshotTools, item: Item) -> bool:
         payload = {"inspectLink": item.unquoted_inspect_link}
 
         try:
@@ -121,7 +121,7 @@ class ScreenshotTools:
 
         return True
 
-    async def _skinport_screenshot(self, item: Item) -> bool:
+    async def _skinport_screenshot(self: ScreenshotTools, item: Item) -> bool:
         """
         Unlike swap.gg, Skinport does not use a WebSocket connection to get the screenshot.
         """
@@ -139,7 +139,9 @@ class ScreenshotTools:
         logger.debug(f"SKINPORT SCREENSHOT FAILED: {response.status_code=}, {response.next_request=}")
         return False
 
-    async def screenshot_tweet(self, tweet: TweetWithItems, prefer_skinport: bool = False) -> list[bool]:
+    async def screenshot_tweet(
+        self: ScreenshotTools, tweet: TweetWithItems, prefer_skinport: bool = False
+    ) -> list[bool]:
         screenshot_tasks: list[asyncio.Task[bool]] = []
 
         for item in tweet.items:

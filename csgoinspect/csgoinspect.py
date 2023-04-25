@@ -30,19 +30,22 @@ if t.TYPE_CHECKING:
 
 
 class CSGOInspect:
-    def __init__(self) -> None:
+    def __init__(self: CSGOInspect) -> None:
         self.screenshots = screenshot_tools.ScreenshotTools()
         self.twitter = twitter.Twitter()
         self.twitter.live.on_tweet = self.on_tweet
 
-    async def on_tweet(self, tweet: tweepy.Tweet) -> None:
+    async def on_tweet(self: CSGOInspect, tweet: tweepy.Tweet) -> None:
         tweet_with_items = await self._parse_tweet(tweet)
         if not tweet_with_items:
             return
+        task_set: set[asyncio.Task[None]] = set()
         coro = self.process_tweet(tweet_with_items)
-        asyncio.create_task(coro)
+        task = asyncio.create_task(coro)
+        task_set.add(task)
+        task.add_done_callback(task_set.discard)
 
-    async def find_tweets(self) -> list[TweetWithItems]:
+    async def find_tweets(self: CSGOInspect) -> list[TweetWithItems]:
         search_results: tweepy.Response = await self.twitter.v2.search_recent_tweets(
             query=INSPECT_LINK_QUERY,
             expansions=TWEET_EXPANSIONS,
@@ -58,7 +61,7 @@ class CSGOInspect:
             items_tweets.append(tweet_with_items)
         return items_tweets
 
-    async def run(self) -> None:
+    async def run(self: CSGOInspect) -> None:
         async def incrementally_find_tweets() -> None:
             logger.debug("STARTING: INCREMENTALLY FIND TWEETS")
             while True:
@@ -83,7 +86,7 @@ class CSGOInspect:
 
         await asyncio.gather(task_one, task_two)
 
-    async def process_tweet(self, tweet: TweetWithItems) -> None:
+    async def process_tweet(self: CSGOInspect, tweet: TweetWithItems) -> None:
         logger.info(f"PROCESSING TWEET: {tweet.url}")
 
         prefer_skinport = PREFER_SKINPORT or await self._prefer_skinport(tweet)
@@ -118,19 +121,22 @@ class CSGOInspect:
 
         await redis_.update_tweet_state(tweet, successful=True)
 
-    async def process_tweets(self, tweets: t.Iterable[TweetWithItems]) -> None:
+    async def process_tweets(self: CSGOInspect, tweets: t.Iterable[TweetWithItems]) -> None:
+        task_set: set[asyncio.Task[None]] = set()
         for tweet in tweets:
             coro = self.process_tweet(tweet)
-            asyncio.create_task(coro)
+            task = asyncio.create_task(coro)
+            task_set.add(task)
+            task.add_done_callback(task_set.discard)
 
-    async def _prefer_skinport(self, tweet: TweetWithItems) -> bool:
+    async def _prefer_skinport(self: CSGOInspect, tweet: TweetWithItems) -> bool:
         parent_tweet_id: int = tweet.tweet.conversation_id
 
         tweet_from_reference: tweepy.Response = await self.twitter.v2.get_tweet(parent_tweet_id, expansions="author_id")  # type: ignore
         tweet_users: list[tweepy.User] = tweet_from_reference.includes["users"]
         return any(user.username == "Skinport" for user in tweet_users)
 
-    async def _parse_tweet(self, tweet: tweepy.Tweet) -> TweetWithItems | None:
+    async def _parse_tweet(self: CSGOInspect, tweet: tweepy.Tweet) -> TweetWithItems | None:
         # Twitter only allows 4 images
         matches: list[re.Match] = list(INSPECT_URL_REGEX.finditer(tweet.text))
         matches = matches[:4]

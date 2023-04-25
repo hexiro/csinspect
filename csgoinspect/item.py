@@ -12,5 +12,5 @@ class Item:
     image_link: str | None = field(compare=False, init=False, hash=False, default=None)
 
     @property
-    def unquoted_inspect_link(self) -> str:
+    def unquoted_inspect_link(self: Item) -> str:
         return urllib.parse.unquote_plus(self.inspect_link)

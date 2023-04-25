@@ -18,13 +18,13 @@ class TweetWithItems:
     failed_attempts: int = 0
 
     @property
-    def id(self) -> int:
+    def id(self: TweetWithItems) -> int:
         return self.tweet.id  # type: ignore[no-any-return]
 
     @property
-    def author_id(self) -> int:
+    def author_id(self: TweetWithItems) -> int:
         return self.tweet.author_id  # type: ignore[no-any-return]
 
     @property
-    def url(self) -> str:
+    def url(self: TweetWithItems) -> str:
         return f"https://twitter.com/i/web/status/{self.id}"
