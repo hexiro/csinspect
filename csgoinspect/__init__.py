@@ -6,7 +6,7 @@ from datetime import datetime
 import sentry_sdk
 from loguru import logger
 
-from csgoinspect.commons import IS_DEV, PARENT_DIRECTORY, SENTRY_DSN
+from csgoinspect.config import IS_DEV, PARENT_DIRECTORY, SENTRY_DSN
 
 if not IS_DEV and SENTRY_DSN:
     sentry_sdk.init(

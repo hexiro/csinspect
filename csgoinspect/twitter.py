@@ -10,7 +10,7 @@ import tweepy.asynchronous
 import tweepy.errors
 from loguru import logger
 
-from csgoinspect.commons import (
+from csgoinspect.config import (
     TWITTER_ACCESS_TOKEN,
     TWITTER_ACCESS_TOKEN_SECRET,
     TWITTER_API_KEY,

@@ -10,7 +10,7 @@ from functools import lru_cache
 from loguru import logger
 from redis.asyncio import Redis
 
-from csgoinspect.commons import REDIS_DATABASE, REDIS_EX, REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
+from csgoinspect.config import REDIS_DATABASE, REDIS_EX, REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
 from csgoinspect.typings import TweetResponseState
 
 if t.TYPE_CHECKING:

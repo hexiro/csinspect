@@ -8,7 +8,7 @@ import tweepy.errors
 from loguru import logger
 
 from csgoinspect import redis_, screenshot_tools, twitter
-from csgoinspect.commons import (
+from csgoinspect.config import (
     DEV_DONT_SEND_TWEETS,
     DEV_ID,
     TWITTER_INSPECT_LINK_QUERY,

@@ -3,9 +3,6 @@ from __future__ import annotations
 import typing as t
 from typing import NamedTuple, TypedDict
 
-if t.TYPE_CHECKING:
-    from datetime import datetime
-
 
 class SwapGGSSuccessfulScreenshotResponse(TypedDict):
     time: int
@@ -51,16 +48,6 @@ class _BaseTweetResponseRawData(TypedDict):
 
 class TweetResponseRawData(_BaseTweetResponseRawData, total=False):
     failed_attempts: int
-
-
-class _BaseTweetResponseData(TypedDict):
-    time: datetime
-    successful: bool
-
-
-class TweetResponseData(_BaseTweetResponseData, total=False):
-    failed_attempts: int
-
 
 class TweetResponseState(NamedTuple):
     successful: bool
