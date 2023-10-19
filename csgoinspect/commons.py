@@ -7,22 +7,21 @@ import re
 import dotenv
 import tweepy
 
+
+# --- paths ---
 PARENT_DIRECTORY = pathlib.Path(__file__).parents[1]
 DOTENV_PATH = PARENT_DIRECTORY / ".env"
-
 if DOTENV_PATH.is_file():
     dotenv.load_dotenv(DOTENV_PATH)
 
-
+# --- meta ---
 IS_DEV = os.getenv("IS_DEV", "false").lower() == "true"
 ONLY_RESPOND_TO_DEV = IS_DEV and os.getenv("ONLY_RESPOND_TO_DEV", "false").lower() == "true"
 DEV_DONT_SEND_TWEETS = IS_DEV and os.getenv("DEV_DONT_SEND_TWEETS", "false").lower() == "true"
 DEV_ID = int(os.environ["DEV_ID"]) if ONLY_RESPOND_TO_DEV else None
-
-PREFER_SKINPORT = IS_DEV and os.getenv("PREFER_SKINPORT", "false").lower() == "true"
-
 MAX_FAILED_ATTEMPTS = 5
 
+# --- twitter ---
 LIVE_RULES = [
     tweepy.StreamRule('"+csgo_econ_action_preview"', tag="+csgo_econ_action_preview'"),
     tweepy.StreamRule('"steam://rungame/730"', tag="steam://rungame/730"),

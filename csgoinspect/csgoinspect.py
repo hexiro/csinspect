@@ -17,7 +17,6 @@ from csgoinspect.commons import (
     LIVE_RULES,
     MAX_FAILED_ATTEMPTS,
     ONLY_RESPOND_TO_DEV,
-    PREFER_SKINPORT,
     TWEET_EXPANSIONS,
     TWEET_TWEET_FIELDS,
     TWEET_USER_FIELDS,
@@ -89,10 +88,7 @@ class CSGOInspect:
     async def process_tweet(self: CSGOInspect, tweet: TweetWithItems) -> None:
         logger.info(f"PROCESSING TWEET: {tweet.url}")
 
-        prefer_skinport = PREFER_SKINPORT or await self._prefer_skinport(tweet)
-        logger.debug(f"SCREENSHOT PREFER SKINPORT: {prefer_skinport}")
-
-        screenshot_responses = await self.screenshots.screenshot_tweet(tweet, prefer_skinport=prefer_skinport)
+        screenshot_responses = await self.screenshots.screenshot_tweet(tweet)
 
         logger.debug(f"SCREENSHOT RESPONSES: {screenshot_responses}")
 
@@ -113,13 +109,10 @@ class CSGOInspect:
             await self.twitter.reply(tweet)
         except tweepy.errors.HTTPException as exc:
             logger.warning(f"ERROR REPLYING: {tweet.url} - {exc}")
-
             await redis_.update_tweet_state(tweet, successful=False)
-            return
-
-        logger.success(f"REPLIED TO TWEET: {tweet.url}")
-
-        await redis_.update_tweet_state(tweet, successful=True)
+        else:
+            logger.success(f"REPLIED TO TWEET: {tweet.url}")
+            await redis_.update_tweet_state(tweet, successful=True)
 
     async def process_tweets(self: CSGOInspect, tweets: t.Iterable[TweetWithItems]) -> None:
         task_set: set[asyncio.Task[None]] = set()
@@ -129,15 +122,8 @@ class CSGOInspect:
             task_set.add(task)
             task.add_done_callback(task_set.discard)
 
-    async def _prefer_skinport(self: CSGOInspect, tweet: TweetWithItems) -> bool:
-        parent_tweet_id: int = tweet.tweet.conversation_id
-
-        tweet_from_reference: tweepy.Response = await self.twitter.v2.get_tweet(parent_tweet_id, expansions="author_id")  # type: ignore
-        tweet_users: list[tweepy.User] = tweet_from_reference.includes["users"]
-        return any(user.username == "Skinport" for user in tweet_users)
-
     async def _parse_tweet(self: CSGOInspect, tweet: tweepy.Tweet) -> TweetWithItems | None:
-        # Twitter only allows 4 images
+        
         matches: list[re.Match] = list(INSPECT_URL_REGEX.finditer(tweet.text))
         matches = matches[:4]
 

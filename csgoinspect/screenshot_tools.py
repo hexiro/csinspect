@@ -46,35 +46,22 @@ class ScreenshotTools:
         image_link = data["imageLink"]
 
         if item := find_item(unquoted_inspect_link):
-
             logger.debug(f"SCREENSHOT READY: {item.inspect_link}")
-
             item.image_link = image_link
             self.screenshot_queue.remove(item)
 
-            return
-
-    async def screenshot(self: ScreenshotTools, item: Item, prefer_skinport: bool = False) -> bool:
+    async def screenshot(self: ScreenshotTools, item: Item) -> bool:
         # sourcery skip: assign-if-exp, introduce-default-else, move-assign-in-block, swap-if-expression
         logger.debug(f"SCREENSHOTTING: {item.inspect_link}")
 
-        skinport_success: bool = False
         swapgg_success: bool = False
+        swapgg_success = await self._swap_gg_screenshot(item)
 
-        if prefer_skinport:
-            skinport_success = await self._skinport_screenshot(item)
-
-        if not skinport_success:
-            swapgg_success = await self._swap_gg_screenshot(item)
-
-        if not prefer_skinport and not swapgg_success:
-            skinport_success = await self._skinport_screenshot(item)
-
-        if (not skinport_success and not swapgg_success) or not item.image_link:
+        if not swapgg_success or not item.image_link:
             logger.warning(f"SCREENSHOT FAILED: {item.inspect_link}")
             return False
 
-        logger.debug(f"SCREENSHOT COMPLETE: {item.image_link} {swapgg_success=} {skinport_success=}")
+        logger.debug(f"SCREENSHOT COMPLETE: {item.image_link} {swapgg_success=}")
         return True
 
     async def _swap_gg_screenshot(self: ScreenshotTools, item: Item) -> bool:
@@ -121,31 +108,13 @@ class ScreenshotTools:
 
         return True
 
-    async def _skinport_screenshot(self: ScreenshotTools, item: Item) -> bool:
-        """
-        Unlike swap.gg, Skinport does not use a WebSocket connection to get the screenshot.
-        """
-        async with httpx.AsyncClient(timeout=120, follow_redirects=False) as session:
-            params = {"link": item.unquoted_inspect_link}
-            response = await session.get("https://screenshot.skinport.com/direct", params=params)
-
-            if response.status_code == 308 and response.next_request:  # redirects and format inspect link
-                response = await session.send(response.next_request)
-
-        if response.next_request:
-            item.image_link = str(response.next_request.url)
-            return True
-
-        logger.debug(f"SKINPORT SCREENSHOT FAILED: {response.status_code=}, {response.next_request=}")
-        return False
-
     async def screenshot_tweet(
-        self: ScreenshotTools, tweet: TweetWithItems, prefer_skinport: bool = False
+        self: ScreenshotTools, tweet: TweetWithItems
     ) -> list[bool]:
         screenshot_tasks: list[asyncio.Task[bool]] = []
 
         for item in tweet.items:
-            screenshot_coro = self.screenshot(item, prefer_skinport=prefer_skinport)
+            screenshot_coro = self.screenshot(item)
             screenshot_task = asyncio.create_task(screenshot_coro)
             screenshot_tasks.append(screenshot_task)
 
