@@ -11,15 +11,16 @@ from csgoinspect import redis_, screenshot_tools, twitter
 from csgoinspect.commons import (
     DEV_DONT_SEND_TWEETS,
     DEV_ID,
-    INSPECT_LINK_QUERY,
-    INSPECT_URL_REGEX,
+    TWITTER_INSPECT_LINK_QUERY,
+    TWITTER_INSPECT_URL_REGEX,
     IS_DEV,
-    LIVE_RULES,
+    TWITTER_LIVE_RULES,
     MAX_FAILED_ATTEMPTS,
     ONLY_RESPOND_TO_DEV,
     TWEET_EXPANSIONS,
     TWEET_TWEET_FIELDS,
     TWEET_USER_FIELDS,
+    TWITTER_MAX_IMAGES_PER_TWEET,
 )
 from csgoinspect.item import Item
 from csgoinspect.tweet import TweetWithItems
@@ -35,7 +36,7 @@ class CSGOInspect:
         self.twitter.live.on_tweet = self.on_tweet
 
     async def on_tweet(self: CSGOInspect, tweet: tweepy.Tweet) -> None:
-        tweet_with_items = await self._parse_tweet(tweet)
+        tweet_with_items = await self.parse_tweet(tweet)
         if not tweet_with_items:
             return
         task_set: set[asyncio.Task[None]] = set()
@@ -46,7 +47,7 @@ class CSGOInspect:
 
     async def find_tweets(self: CSGOInspect) -> list[TweetWithItems]:
         search_results: tweepy.Response = await self.twitter.v2.search_recent_tweets(
-            query=INSPECT_LINK_QUERY,
+            query=TWITTER_INSPECT_LINK_QUERY,
             expansions=TWEET_EXPANSIONS,
             tweet_fields=TWEET_TWEET_FIELDS,
             user_fields=TWEET_USER_FIELDS,
@@ -54,7 +55,7 @@ class CSGOInspect:
         tweets: list[tweepy.Tweet] = search_results.data
         items_tweets: list[TweetWithItems] = []
         for tweet in tweets:
-            tweet_with_items = await self._parse_tweet(tweet)
+            tweet_with_items = await self.parse_tweet(tweet)
             if not tweet_with_items:
                 continue
             items_tweets.append(tweet_with_items)
@@ -75,7 +76,7 @@ class CSGOInspect:
 
         task_one = asyncio.create_task(incrementally_find_tweets())
 
-        await self.twitter.live.add_rules(LIVE_RULES)
+        await self.twitter.live.add_rules(TWITTER_LIVE_RULES)
 
         logger.debug("STARTING: LIVE TWEETS")
 
@@ -122,10 +123,9 @@ class CSGOInspect:
             task_set.add(task)
             task.add_done_callback(task_set.discard)
 
-    async def _parse_tweet(self: CSGOInspect, tweet: tweepy.Tweet) -> TweetWithItems | None:
-        
-        matches: list[re.Match] = list(INSPECT_URL_REGEX.finditer(tweet.text))
-        matches = matches[:4]
+    async def parse_tweet(self: CSGOInspect, tweet: tweepy.Tweet) -> TweetWithItems | None:
+        matches: list[re.Match] = list(TWITTER_INSPECT_URL_REGEX.finditer(tweet.text))
+        matches = matches[:TWITTER_MAX_IMAGES_PER_TWEET]
 
         if not matches:
             logger.info(f"SKIPPING TWEET (No Inspect Links): {tweet.id} ")
