@@ -7,8 +7,8 @@ import tweepy
 import tweepy.errors
 from loguru import logger
 
-from csgoinspect import redis_, screenshot_tools, twitter
-from csgoinspect.config import (
+from csinspect import redis_, screenshot_tools, twitter
+from csinspect.config import (
     DEV_DONT_SEND_TWEETS,
     DEV_ID,
     ENABLE_TWITTER_LIVE,
@@ -25,19 +25,19 @@ from csgoinspect.config import (
     TWEET_USER_FIELDS,
     TWEET_MAX_IMAGES,
 )
-from csgoinspect.item import Item
-from csgoinspect.tweet import TweetWithItems
+from csinspect.item import Item
+from csinspect.tweet import TweetWithItems
 
 if t.TYPE_CHECKING:
     import re
 
 
-class CSGOInspect:
-    def __init__(self: CSGOInspect) -> None:
+class CSInspect:
+    def __init__(self: CSInspect) -> None:
         self.screenshots = screenshot_tools.ScreenshotTools()
         self.twitter = twitter.Twitter(on_tweet=self.on_tweet)
 
-    async def on_tweet(self: CSGOInspect, tweet: tweepy.Tweet) -> None:
+    async def on_tweet(self: CSInspect, tweet: tweepy.Tweet) -> None:
         tweet_with_items = await self.parse_tweet(tweet)
         if not tweet_with_items:
             return
@@ -47,7 +47,7 @@ class CSGOInspect:
         task_set.add(task)
         task.add_done_callback(task_set.discard)
 
-    async def find_tweets(self: CSGOInspect) -> list[TweetWithItems]:
+    async def find_tweets(self: CSInspect) -> list[TweetWithItems]:
         search_results: tweepy.Response = await self.twitter.v2.search_recent_tweets(
             query=TWITTER_INSPECT_LINK_QUERY,
             expansions=TWEET_EXPANSIONS,
@@ -63,7 +63,7 @@ class CSGOInspect:
             items_tweets.append(tweet_with_items)
         return items_tweets
 
-    async def run(self: CSGOInspect) -> None:
+    async def run(self: CSInspect) -> None:
         running_search_task = self.search_task()
         running_live_task = self.live_task()
         tasks = filter(None, (running_search_task, running_live_task))
@@ -72,7 +72,7 @@ class CSGOInspect:
     async def search_task(self) -> asyncio.Task | None:
         if not ENABLE_TWITTER_SEARCH:
             return None
-        
+
         async def find_tweets() -> None:
             logger.info(f"FINDING TWEETS (Past {TWEET_SEARCH_DELAY} Seconds)")
 
@@ -106,7 +106,7 @@ class CSGOInspect:
         )
         return task
 
-    async def process_tweet(self: CSGOInspect, tweet: TweetWithItems) -> None:
+    async def process_tweet(self: CSInspect, tweet: TweetWithItems) -> None:
         logger.info(f"PROCESSING TWEET: {tweet.url}")
 
         screenshot_responses = await self.screenshots.screenshot_tweet(tweet)
@@ -135,7 +135,7 @@ class CSGOInspect:
             logger.success(f"REPLIED TO TWEET: {tweet.url}")
             await redis_.update_tweet_state(tweet, successful=True)
 
-    async def process_tweets(self: CSGOInspect, tweets: t.Iterable[TweetWithItems]) -> None:
+    async def process_tweets(self: CSInspect, tweets: t.Iterable[TweetWithItems]) -> None:
         task_set: set[asyncio.Task[None]] = set()
         for tweet in tweets:
             coro = self.process_tweet(tweet)
@@ -143,7 +143,7 @@ class CSGOInspect:
             task_set.add(task)
             task.add_done_callback(task_set.discard)
 
-    async def parse_tweet(self: CSGOInspect, tweet: tweepy.Tweet) -> TweetWithItems | None:
+    async def parse_tweet(self: CSInspect, tweet: tweepy.Tweet) -> TweetWithItems | None:
         matches: list[re.Match] = list(TWITTER_INSPECT_URL_REGEX.finditer(tweet.text))
         matches = matches[:TWEET_MAX_IMAGES]
 

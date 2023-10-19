@@ -8,9 +8,9 @@ import socketio
 from loguru import logger
 
 if t.TYPE_CHECKING:
-    from csgoinspect.item import Item
-    from csgoinspect.tweet import TweetWithItems
-    from csgoinspect.typings import SwapGGScreenshotReady, SwapGGScreenshotResponse, SwapGGScreenshotResult
+    from csinspect.item import Item
+    from csinspect.tweet import TweetWithItems
+    from csinspect.typings import SwapGGScreenshotReady, SwapGGScreenshotResponse, SwapGGScreenshotResult
 
 
 class ScreenshotTools:

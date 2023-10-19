@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import asyncio
 
-from csgoinspect.csgoinspect import CSGOInspect
+from csinspect.csinspect import CSInspect
 
 
 async def main() -> None:
-    csgo_inspect = CSGOInspect()
+    csgo_inspect = CSInspect()
     await csgo_inspect.run()
 
 

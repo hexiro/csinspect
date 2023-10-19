@@ -10,7 +10,7 @@ import tweepy.asynchronous
 import tweepy.errors
 from loguru import logger
 
-from csgoinspect.config import (
+from csinspect.config import (
     ENABLE_TWITTER_LIVE,
     TWITTER_ACCESS_TOKEN,
     TWITTER_ACCESS_TOKEN_SECRET,
@@ -22,8 +22,8 @@ from csgoinspect.config import (
 if t.TYPE_CHECKING:
     from tweepy.models import Media
 
-    from csgoinspect.item import Item
-    from csgoinspect.tweet import TweetWithItems
+    from csinspect.item import Item
+    from csinspect.tweet import TweetWithItems
 
 
 class Twitter:

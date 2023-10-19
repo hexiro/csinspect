@@ -6,7 +6,7 @@ from dataclasses import dataclass
 if t.TYPE_CHECKING:
     import tweepy
 
-    from csgoinspect.item import Item
+    from csinspect.item import Item
 
 
 @dataclass(slots=True)
