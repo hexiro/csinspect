@@ -11,6 +11,7 @@ import tweepy.errors
 from loguru import logger
 
 from csgoinspect.config import (
+    ENABLE_TWITTER_LIVE,
     TWITTER_ACCESS_TOKEN,
     TWITTER_ACCESS_TOKEN_SECRET,
     TWITTER_API_KEY,
@@ -28,7 +29,7 @@ if t.TYPE_CHECKING:
 class Twitter:
     """Merged wrapper of Twitter's v1, v2, and Steaming API provided by Tweepy."""
 
-    def __init__(self: Twitter) -> None:
+    def __init__(self: Twitter, on_tweet: t.Callable[[tweepy.Tweet], t.Coroutine[t.Any, t.Any, None]]) -> None:
         self.v2 = tweepy.asynchronous.AsyncClient(
             bearer_token=TWITTER_BEARER_TOKEN,
             consumer_key=TWITTER_API_KEY,
@@ -45,16 +46,18 @@ class Twitter:
             )
         )
 
-        self.live = tweepy.asynchronous.AsyncStreamingClient(TWITTER_BEARER_TOKEN)
+        self.live: tweepy.asynchronous.AsyncStreamingClient | None = None
+        if ENABLE_TWITTER_LIVE:
+            self.live = tweepy.asynchronous.AsyncStreamingClient(TWITTER_BEARER_TOKEN)
 
-        async def on_connect() -> None:
-            logger.debug("CONNECTED: Twitter Streaming API")
+            async def on_connect() -> None:
+                logger.debug("CONNECTED: Twitter Streaming API")
 
-        async def on_disconnect() -> None:
-            logger.debug("CONNECTED: Twitter Streaming API")
+            async def on_disconnect() -> None:
+                logger.debug("CONNECTED: Twitter Streaming API")
 
-        self.live.on_connect = on_connect
-        self.live.on_disconnect = on_disconnect
+            self.live.on_connect = on_connect
+            self.live.on_disconnect = on_disconnect
 
     async def reply(self: Twitter, tweet: TweetWithItems) -> None:
         media_uploads = await self.upload_items(tweet.items)
@@ -83,14 +86,14 @@ class Twitter:
 
         media_tasks: list[asyncio.Task[Media]] = []
         for image_link, screenshot in screenshots:
-            media_coro = self._media_upload(filename=image_link, file=screenshot)
+            media_coro = self.media_upload(filename=image_link, file=screenshot)
             media_task = asyncio.create_task(media_coro)
             media_tasks.append(media_task)
 
         media_uploads: list[Media] = await asyncio.gather(*media_tasks)
         return media_uploads
 
-    async def _media_upload(
+    async def media_upload(
         self: Twitter,
         filename: str | None,
         *,

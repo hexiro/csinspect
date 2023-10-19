@@ -15,7 +15,6 @@ class TweetWithItems:
 
     items: tuple[Item, ...]
     tweet: tweepy.Tweet
-    failed_attempts: int = 0
 
     @property
     def id(self: TweetWithItems) -> int:

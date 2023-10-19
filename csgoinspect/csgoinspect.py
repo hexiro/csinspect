@@ -11,16 +11,19 @@ from csgoinspect import redis_, screenshot_tools, twitter
 from csgoinspect.config import (
     DEV_DONT_SEND_TWEETS,
     DEV_ID,
+    ENABLE_TWITTER_LIVE,
+    ENABLE_TWITTER_SEARCH,
+    TWEET_SEARCH_DELAY,
     TWITTER_INSPECT_LINK_QUERY,
     TWITTER_INSPECT_URL_REGEX,
     IS_DEV,
     TWITTER_LIVE_RULES,
-    MAX_FAILED_ATTEMPTS,
+    TWEET_MAX_FAILED_ATTEMPTS,
     ONLY_RESPOND_TO_DEV,
     TWEET_EXPANSIONS,
     TWEET_TWEET_FIELDS,
     TWEET_USER_FIELDS,
-    TWITTER_MAX_IMAGES_PER_TWEET,
+    TWEET_MAX_IMAGES,
 )
 from csgoinspect.item import Item
 from csgoinspect.tweet import TweetWithItems
@@ -32,8 +35,7 @@ if t.TYPE_CHECKING:
 class CSGOInspect:
     def __init__(self: CSGOInspect) -> None:
         self.screenshots = screenshot_tools.ScreenshotTools()
-        self.twitter = twitter.Twitter()
-        self.twitter.live.on_tweet = self.on_tweet
+        self.twitter = twitter.Twitter(on_tweet=self.on_tweet)
 
     async def on_tweet(self: CSGOInspect, tweet: tweepy.Tweet) -> None:
         tweet_with_items = await self.parse_tweet(tweet)
@@ -62,29 +64,47 @@ class CSGOInspect:
         return items_tweets
 
     async def run(self: CSGOInspect) -> None:
+        running_search_task = self.search_task()
+        running_live_task = self.live_task()
+        tasks = filter(None, (running_search_task, running_live_task))
+        await asyncio.gather(*tasks)
+
+    async def search_task(self) -> asyncio.Task | None:
+        if not ENABLE_TWITTER_SEARCH:
+            return None
+        
+        async def find_tweets() -> None:
+            logger.info(f"FINDING TWEETS (Past {TWEET_SEARCH_DELAY} Seconds)")
+
+            try:
+                items_tweets = await self.find_tweets()
+                await self.process_tweets(items_tweets)
+            except Exception:
+                logger.exception("Error Finding or Processing Tweets")
+
+            logger.info(f"DONE FINDING TWEETS (Past {TWEET_SEARCH_DELAY} Seconds)")
+
         async def incrementally_find_tweets() -> None:
             logger.debug("STARTING: INCREMENTALLY FIND TWEETS")
             while True:
-                logger.info("FINDING TWEETS (Past 10 Minutes)")
-                try:
-                    items_tweets = await self.find_tweets()
-                    await self.process_tweets(items_tweets)
-                except Exception:
-                    logger.exception("Error finding tweets")
-                logger.info("DONE FINDING TWEETS (Past 10 Minutes)")
-                await asyncio.sleep(600)
+                await find_tweets()
+                await asyncio.sleep(TWEET_SEARCH_DELAY)
 
-        task_one = asyncio.create_task(incrementally_find_tweets())
+        coro = incrementally_find_tweets()
+        task = asyncio.create_task(coro)
+        return task
 
-        await self.twitter.live.add_rules(TWITTER_LIVE_RULES)
+    async def live_task(self) -> asyncio.Task | None:
+        if not ENABLE_TWITTER_LIVE or self.twitter.live is None:
+            logger.debug("NOT STARTING: LIVE TWEETS")
+            return None
 
         logger.debug("STARTING: LIVE TWEETS")
-
-        task_two = self.twitter.live.filter(
+        await self.twitter.live.add_rules(TWITTER_LIVE_RULES)
+        task = await self.twitter.live.filter(
             expansions=TWEET_EXPANSIONS, tweet_fields=TWEET_TWEET_FIELDS, user_fields=TWEET_USER_FIELDS
         )
-
-        await asyncio.gather(task_one, task_two)
+        return task
 
     async def process_tweet(self: CSGOInspect, tweet: TweetWithItems) -> None:
         logger.info(f"PROCESSING TWEET: {tweet.url}")
@@ -125,7 +145,7 @@ class CSGOInspect:
 
     async def parse_tweet(self: CSGOInspect, tweet: tweepy.Tweet) -> TweetWithItems | None:
         matches: list[re.Match] = list(TWITTER_INSPECT_URL_REGEX.finditer(tweet.text))
-        matches = matches[:TWITTER_MAX_IMAGES_PER_TWEET]
+        matches = matches[:TWEET_MAX_IMAGES]
 
         if not matches:
             logger.info(f"SKIPPING TWEET (No Inspect Links): {tweet.id} ")
@@ -133,10 +153,10 @@ class CSGOInspect:
 
         if DEV_ID:
             if IS_DEV and ONLY_RESPOND_TO_DEV and tweet.author_id != DEV_ID:
-                logger.info(f"SKIPPING TWEET (Dev Mode & Not Dev): {tweet.id}, {tweet.author_id} ")
+                logger.info(f"SKIPPING TWEET (Dev Mode Enabled & Not Dev): {tweet.id}, {tweet.author_id} ")
                 return None
             if not IS_DEV and tweet.author_id == DEV_ID:
-                logger.info(f"SKIPPING TWEET (Not Dev Mode & Dev): {tweet.id}, {tweet.author_id} ")
+                logger.info(f"SKIPPING TWEET (Dev Mode Disabled & Dev): {tweet.id}, {tweet.author_id} ")
                 return None
 
         items = tuple(Item(inspect_link=match.group()) for match in matches)
@@ -144,15 +164,15 @@ class CSGOInspect:
         tweet_with_items = TweetWithItems(items, tweet)
         tweet_state = await redis_.tweet_state(tweet_with_items)
 
-        if tweet_state:
-            if tweet_state.failed_attempts > MAX_FAILED_ATTEMPTS:
-                logger.info(f"SKIPPING TWEET (Too Many Failed Attempts): {tweet.id}")
-                return None
+        if not tweet_state:
+            return tweet_with_items
 
-            if tweet_state.successful:
-                logger.info(f"SKIPPING TWEET (Already Successfully Responded): {tweet.id}")
-                return None
+        if tweet_state.failed_attempts > TWEET_MAX_FAILED_ATTEMPTS:
+            logger.info(f"SKIPPING TWEET (Too Many Failed Attempts): {tweet.id}")
+            return None
 
-            tweet_with_items.failed_attempts = tweet_state.failed_attempts
+        if tweet_state.successful:
+            logger.info(f"SKIPPING TWEET (Already Successfully Responded): {tweet.id}")
+            return None
 
         return tweet_with_items
