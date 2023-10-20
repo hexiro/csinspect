@@ -27,14 +27,13 @@ async def tweet_state(tweet: TweetWithItems) -> TweetResponseState | None:
     redis_ = get_redis()
 
     key = str(tweet.id)
-    tweet_value: str | None = await redis_.get(key)
+    tweet_value = await redis_.get(key)
 
     if not tweet_value:
         return None
 
     data: TweetResponseRawData = json.loads(tweet_value)
-
-    return TweetResponseState(data["successful"])
+    return TweetResponseState(successful=data["successful"], failed_attempts=data.get("failed_attempts", 0))
 
 
 async def update_tweet_state(tweet: TweetWithItems, *, successful: bool) -> None:

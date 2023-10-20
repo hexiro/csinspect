@@ -71,9 +71,10 @@ class CSInspect:
 
     async def search_task(self) -> asyncio.Task | None:
         if not ENABLE_TWITTER_SEARCH:
+            logger.debug("NOT STARTING: SEARCH TWEETS")
             return None
 
-        async def find_tweets() -> None:
+        async def find_and_process_tweets() -> None:
             logger.info(f"FINDING TWEETS (Past {TWEET_SEARCH_DELAY} Seconds)")
 
             try:
@@ -84,13 +85,13 @@ class CSInspect:
 
             logger.info(f"DONE FINDING TWEETS (Past {TWEET_SEARCH_DELAY} Seconds)")
 
-        async def incrementally_find_tweets() -> None:
-            logger.debug("STARTING: INCREMENTALLY FIND TWEETS")
+        async def incrementally_find_and_process_tweets() -> None:
+            logger.debug("STARTING: SEARCH TWEETS")
             while True:
-                await find_tweets()
+                await find_and_process_tweets()
                 await asyncio.sleep(TWEET_SEARCH_DELAY)
 
-        coro = incrementally_find_tweets()
+        coro = incrementally_find_and_process_tweets()
         task = asyncio.create_task(coro)
         return task
 

@@ -58,6 +58,7 @@ class Twitter:
 
             self.live.on_connect = on_connect
             self.live.on_disconnect = on_disconnect
+            self.live.on_tweet = on_tweet # type: ignore
 
     async def reply(self: Twitter, tweet: TweetWithItems) -> None:
         media_uploads = await self.upload_items(tweet.items)
