@@ -64,8 +64,8 @@ class CSInspect:
         return items_tweets
 
     async def run(self: CSInspect) -> None:
-        running_search_task = self.search_task()
-        running_live_task = self.live_task()
+        running_search_task = await self.search_task()
+        running_live_task = await self.live_task()
         tasks = filter(None, (running_search_task, running_live_task))
         await asyncio.gather(*tasks)
 
