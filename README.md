@@ -17,7 +17,7 @@
 
 <h2>Screenshot Tools</h2>
 <ul>
-  <li><a href="https://market.swap.gg/screenshot" target="_blank" rel="norefferer">swap.gg</a></li>
+  <li><a href="https://swap.gg/screenshot" target="_blank" rel="norefferer">swap.gg</a></li>
 </ul>
 
 <br/>

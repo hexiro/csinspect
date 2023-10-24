@@ -5,9 +5,8 @@ from typing import NamedTuple, TypedDict
 
 
 class SwapGGSSuccessfulScreenshotResponse(TypedDict):
-    time: int
     status: str
-    result: SwapGGScreenshotCompletedResult | SwapGGScreenshotNotCompletedResult
+    result: SwapGGScreenshotResult
 
 
 class SwapGGErrorScreenshotResponse(TypedDict):
@@ -17,28 +16,15 @@ class SwapGGErrorScreenshotResponse(TypedDict):
 
 SwapGGScreenshotResponse: t.TypeAlias = SwapGGSSuccessfulScreenshotResponse | SwapGGErrorScreenshotResponse
 
-
-class SwapGGScreenshotNotCompletedResult(TypedDict):
-    marketName: str
+class SwapGGScreenshotResult(TypedDict):
+    imageId: str
     inspectLink: str
-    state: str
-    itemInfo: object  # typings not needed
-
-
-class SwapGGScreenshotCompletedResult(TypedDict):
     marketName: str
-    inspectLink: str
-    imageLink: str
-    state: t.Literal["COMPLETED"]
-    itemInfo: object  # typings not needed
-
-
-SwapGGScreenshotResult: t.TypeAlias = SwapGGScreenshotCompletedResult | SwapGGScreenshotNotCompletedResult
+    state: t.Literal["COMPLETED", "IN_QUEUE"] | str
 
 
 class SwapGGScreenshotReady(TypedDict):
-    imageLink: str
-    inspectLink: str
+    imageId: str
 
 
 class _BaseTweetResponseRawData(TypedDict):
