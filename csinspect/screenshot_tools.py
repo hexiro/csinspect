@@ -14,11 +14,16 @@ if t.TYPE_CHECKING:
 
 
 class ScreenshotTools:
-    SWAPGG_HEADERS = {
+    USER_AGENT = "csinspect; (+https://github.com/hexiro/csinspect)"
+    SWAPGG_API_HEADERS = {
         "Accept": "application/json",
         "Accept-Language": "en-US,en;q=0.9",
         "Referer": "https://swap.gg/",
         "Referrer-Policy": "strict-origin-when-cross-origin",
+        "User-Agent": USER_AGENT,
+    }
+    SWAP_GG_WS_HEADERS = {
+        "User-Agent": USER_AGENT,
     }
 
     def __init__(self: ScreenshotTools) -> None:
@@ -40,7 +45,7 @@ class ScreenshotTools:
         if self.swap_gg_socket.connected:
             return
 
-        await self.swap_gg_socket.connect("https://ws.swap.gg")
+        await self.swap_gg_socket.connect(url="https://ws.swap.gg", headers=self.SWAP_GG_WS_HEADERS)
 
     async def on_swap_gg_screenshot(self: ScreenshotTools, data: SwapGGScreenshotReady) -> None:
         image_id = data["imageId"]
@@ -71,7 +76,7 @@ class ScreenshotTools:
                 payload = {"inspectLink": item.unquoted_inspect_link}
                 response = await session.post(
                     url="https://api.swap.gg/v2/screenshot",
-                    headers=self.SWAPGG_HEADERS,
+                    headers=self.SWAPGG_API_HEADERS,
                     json=payload,
                 )
             data: SwapGGScreenshotResponse = response.json()
