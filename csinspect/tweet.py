@@ -10,20 +10,20 @@ if t.TYPE_CHECKING:
 
 
 @dataclass(slots=True)
-class TweetWithItems:
-    """A Tweet that also contains data about CS:GO items."""
+class TweetWithInspectLink:
+    """A Tweet that also contains inspect-links pointing to Counter-Strike items."""
 
     items: tuple[Item, ...]
     tweet: tweepy.Tweet
 
     @property
-    def id(self: TweetWithItems) -> int:
+    def id(self: TweetWithInspectLink) -> int:
         return self.tweet.id  # type: ignore[no-any-return]
 
     @property
-    def author_id(self: TweetWithItems) -> int:
+    def author_id(self: TweetWithInspectLink) -> int:
         return self.tweet.author_id  # type: ignore[no-any-return]
 
     @property
-    def url(self: TweetWithItems) -> str:
+    def url(self: TweetWithInspectLink) -> str:
         return f"https://twitter.com/i/web/status/{self.id}"

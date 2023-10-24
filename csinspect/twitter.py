@@ -23,7 +23,7 @@ if t.TYPE_CHECKING:
     from tweepy.models import Media
 
     from csinspect.item import Item
-    from csinspect.tweet import TweetWithItems
+    from csinspect.tweet import TweetWithInspectLink
 
 
 class Twitter:
@@ -58,9 +58,9 @@ class Twitter:
 
             self.live.on_connect = on_connect
             self.live.on_disconnect = on_disconnect
-            self.live.on_tweet = on_tweet # type: ignore
+            self.live.on_tweet = on_tweet  # type: ignore
 
-    async def reply(self: Twitter, tweet: TweetWithItems) -> None:
+    async def reply(self: Twitter, tweet: TweetWithInspectLink) -> None:
         media_uploads = await self.upload_items(tweet.items)
         media_ids: list[int] = [media.media_id for media in media_uploads]  # type: ignore
 

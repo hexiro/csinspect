@@ -7,7 +7,7 @@ import tweepy
 import tweepy.errors
 from loguru import logger
 
-from csinspect import redis_, screenshot_tools, twitter
+from csinspect import redis_, screenshot, twitter
 from csinspect.config import (
     DEV_DONT_SEND_TWEETS,
     DEV_ID,
@@ -26,7 +26,7 @@ from csinspect.config import (
     TWEET_MAX_IMAGES,
 )
 from csinspect.item import Item
-from csinspect.tweet import TweetWithItems
+from csinspect.tweet import TweetWithInspectLink
 
 if t.TYPE_CHECKING:
     import re
@@ -34,7 +34,7 @@ if t.TYPE_CHECKING:
 
 class CSInspect:
     def __init__(self: CSInspect) -> None:
-        self.screenshots = screenshot_tools.ScreenshotTools()
+        self.screenshot = screenshot.Screenshot()
         self.twitter = twitter.Twitter(on_tweet=self.on_tweet)
 
     async def on_tweet(self: CSInspect, tweet: tweepy.Tweet) -> None:
@@ -47,7 +47,7 @@ class CSInspect:
         task_set.add(task)
         task.add_done_callback(task_set.discard)
 
-    async def find_tweets(self: CSInspect) -> list[TweetWithItems]:
+    async def find_tweets(self: CSInspect) -> list[TweetWithInspectLink]:
         search_results: tweepy.Response = await self.twitter.v2.search_recent_tweets(
             query=TWITTER_INSPECT_LINK_QUERY,
             expansions=TWEET_EXPANSIONS,
@@ -55,7 +55,7 @@ class CSInspect:
             user_fields=TWEET_USER_FIELDS,
         )  # type: ignore
         tweets: list[tweepy.Tweet] = search_results.data
-        items_tweets: list[TweetWithItems] = []
+        items_tweets: list[TweetWithInspectLink] = []
         for tweet in tweets:
             tweet_with_items = await self.parse_tweet(tweet)
             if not tweet_with_items:
@@ -107,10 +107,10 @@ class CSInspect:
         )
         return task
 
-    async def process_tweet(self: CSInspect, tweet: TweetWithItems) -> None:
+    async def process_tweet(self: CSInspect, tweet: TweetWithInspectLink) -> None:
         logger.info(f"PROCESSING TWEET: {tweet.url}")
 
-        screenshot_responses = await self.screenshots.screenshot_tweet(tweet)
+        screenshot_responses = await self.screenshot.screenshot_items(tweet.items)
 
         logger.debug(f"SCREENSHOT RESPONSES: {screenshot_responses}")
 
@@ -136,7 +136,7 @@ class CSInspect:
             logger.success(f"REPLIED TO TWEET: {tweet.url}")
             await redis_.update_tweet_state(tweet, successful=True)
 
-    async def process_tweets(self: CSInspect, tweets: t.Iterable[TweetWithItems]) -> None:
+    async def process_tweets(self: CSInspect, tweets: t.Iterable[TweetWithInspectLink]) -> None:
         task_set: set[asyncio.Task[None]] = set()
         for tweet in tweets:
             coro = self.process_tweet(tweet)
@@ -144,7 +144,7 @@ class CSInspect:
             task_set.add(task)
             task.add_done_callback(task_set.discard)
 
-    async def parse_tweet(self: CSInspect, tweet: tweepy.Tweet) -> TweetWithItems | None:
+    async def parse_tweet(self: CSInspect, tweet: tweepy.Tweet) -> TweetWithInspectLink | None:
         matches: list[re.Match] = list(TWITTER_INSPECT_URL_REGEX.finditer(tweet.text))
         matches = matches[:TWEET_MAX_IMAGES]
 
@@ -162,7 +162,7 @@ class CSInspect:
 
         items = tuple(Item(inspect_link=match.group()) for match in matches)
 
-        tweet_with_items = TweetWithItems(items, tweet)
+        tweet_with_items = TweetWithInspectLink(items, tweet)
         tweet_state = await redis_.tweet_state(tweet_with_items)
 
         if not tweet_state:

@@ -9,11 +9,10 @@ from loguru import logger
 
 if t.TYPE_CHECKING:
     from csinspect.item import Item
-    from csinspect.tweet import TweetWithItems
     from csinspect.typings import SwapGGScreenshotReady, SwapGGScreenshotResponse, SwapGGScreenshotResult
 
 
-class ScreenshotTools:
+class Screenshot:
     USER_AGENT = "csinspect; (+https://github.com/hexiro/csinspect)"
     SWAPGG_API_HEADERS = {
         "Accept": "application/json",
@@ -26,7 +25,7 @@ class ScreenshotTools:
         "User-Agent": USER_AGENT,
     }
 
-    def __init__(self: ScreenshotTools) -> None:
+    def __init__(self: Screenshot) -> None:
         self.swap_gg_socket = socketio.AsyncClient(handle_sigint=True)
         self.screenshot_queue: set[str] = set()  # set[image_id]
 
@@ -47,7 +46,7 @@ class ScreenshotTools:
 
         await self.swap_gg_socket.connect(url="https://ws.swap.gg", headers=self.SWAP_GG_WS_HEADERS)
 
-    async def on_swap_gg_screenshot(self: ScreenshotTools, data: SwapGGScreenshotReady) -> None:
+    async def on_swap_gg_screenshot(self: Screenshot, data: SwapGGScreenshotReady) -> None:
         image_id = data["imageId"]
 
         if image_id not in self.screenshot_queue:
@@ -57,20 +56,8 @@ class ScreenshotTools:
         logger.debug(f"SCREENSHOT READY: {image_id}")
         self.screenshot_queue.remove(image_id)
 
-    async def screenshot(self: ScreenshotTools, item: Item) -> bool:
-        # sourcery skip: assign-if-exp, introduce-default-else, move-assign-in-block, swap-if-expression
-        logger.debug(f"SCREENSHOTTING: {item.inspect_link}")
 
-        swapgg_success = await self.swap_gg_screenshot(item)
-
-        if not swapgg_success or not item.image_id:
-            logger.warning(f"SCREENSHOT FAILED: {item.inspect_link}")
-            return False
-
-        logger.debug(f"SCREENSHOT COMPLETE: {item.image_link} {swapgg_success=}")
-        return True
-
-    async def swap_gg_screenshot(self: ScreenshotTools, item: Item) -> bool:
+    async def swap_gg_screenshot(self: Screenshot, item: Item) -> bool:
         try:
             async with httpx.AsyncClient() as session:
                 payload = {"inspectLink": item.unquoted_inspect_link}
@@ -114,11 +101,24 @@ class ScreenshotTools:
 
         return True
 
-    async def screenshot_tweet(self: ScreenshotTools, tweet: TweetWithItems) -> list[bool]:
+
+    async def screenshot_item(self: Screenshot, item: Item) -> bool:
+        logger.debug(f"SCREENSHOTTING: {item.inspect_link}")
+
+        swapgg_success = await self.swap_gg_screenshot(item)
+
+        if not swapgg_success or not item.image_id:
+            logger.warning(f"SCREENSHOT FAILED: {item.inspect_link}")
+            return False
+
+        logger.debug(f"SCREENSHOT COMPLETE: {item.image_link} {swapgg_success=}")
+        return True
+
+    async def screenshot_items(self: Screenshot, items: t.Iterable[Item]) -> list[bool]:
         screenshot_tasks: list[asyncio.Task[bool]] = []
 
-        for item in tweet.items:
-            screenshot_coro = self.screenshot(item)
+        for item in items:
+            screenshot_coro = self.screenshot_item(item)
             screenshot_task = asyncio.create_task(screenshot_coro)
             screenshot_tasks.append(screenshot_task)
 

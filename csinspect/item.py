@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 
 @dataclass(unsafe_hash=True, slots=True)
 class Item:
-    """Represents an Item in a CS:GO inventory."""
+    """Represents an Item in a Counter-Strike inventory."""
 
     inspect_link: str = field(hash=True)
     image_id: str | None = field(compare=False, init=False, hash=False, default=None)

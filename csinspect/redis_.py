@@ -14,7 +14,7 @@ from csinspect.config import REDIS_DATABASE, REDIS_EX, REDIS_HOST, REDIS_PASSWOR
 from csinspect.typings import TweetResponseState
 
 if t.TYPE_CHECKING:
-    from csinspect.tweet import TweetWithItems
+    from csinspect.tweet import TweetWithInspectLink
     from csinspect.typings import TweetResponseRawData
 
 
@@ -23,7 +23,7 @@ def get_redis() -> Redis[str]:
     return Redis(host=REDIS_HOST, password=REDIS_PASSWORD, port=REDIS_PORT, db=REDIS_DATABASE, decode_responses=True)
 
 
-async def tweet_state(tweet: TweetWithItems) -> TweetResponseState | None:
+async def tweet_state(tweet: TweetWithInspectLink) -> TweetResponseState | None:
     redis_ = get_redis()
 
     key = str(tweet.id)
@@ -36,7 +36,7 @@ async def tweet_state(tweet: TweetWithItems) -> TweetResponseState | None:
     return TweetResponseState(successful=data["successful"], failed_attempts=data.get("failed_attempts", 0))
 
 
-async def update_tweet_state(tweet: TweetWithItems, *, successful: bool) -> None:
+async def update_tweet_state(tweet: TweetWithInspectLink, *, successful: bool) -> None:
     redis_ = get_redis()
 
     logger.debug(f"STORING TWEET: {tweet.url}")
