@@ -9,17 +9,16 @@ from loguru import logger
 
 from csinspect import redis_, screenshot, twitter
 from csinspect.config import (
-    DEV_DONT_SEND_TWEETS,
     DEV_ID,
+    DEV_MODE,
+    DEV_SILENT,
     ENABLE_TWITTER_LIVE,
     ENABLE_TWITTER_SEARCH,
     TWEET_SEARCH_DELAY,
     TWITTER_INSPECT_LINK_QUERY,
     TWITTER_INSPECT_URL_REGEX,
-    IS_DEV,
     TWITTER_LIVE_RULES,
     TWEET_MAX_FAILED_ATTEMPTS,
-    ONLY_RESPOND_TO_DEV,
     TWEET_EXPANSIONS,
     TWEET_TWEET_FIELDS,
     TWEET_USER_FIELDS,
@@ -123,8 +122,8 @@ class CSInspect:
         logger.info(f"REPLYING TO TWEET: {tweet.url}")
         logger.debug(f"{tweet.items=}")
 
-        if DEV_DONT_SEND_TWEETS:
-            logger.info("SKIPPING TWEET (DEV_DONT_SEND_TWEETS IS ENABLED)")
+        if DEV_SILENT:
+            logger.info("SKIPPING TWEET (DEV_SILENT MODE IS ENABLED)")
             return
 
         try:
@@ -152,13 +151,12 @@ class CSInspect:
             logger.info(f"SKIPPING TWEET (No Inspect Links): {tweet.id} ")
             return None
 
-        if DEV_ID:
-            if IS_DEV and ONLY_RESPOND_TO_DEV and tweet.author_id != DEV_ID:
-                logger.info(f"SKIPPING TWEET (Dev Mode Enabled & Not Dev): {tweet.id}, {tweet.author_id} ")
-                return None
-            if not IS_DEV and tweet.author_id == DEV_ID:
-                logger.info(f"SKIPPING TWEET (Dev Mode Disabled & Dev): {tweet.id}, {tweet.author_id} ")
-                return None
+        if DEV_MODE and tweet.author_id != DEV_ID:
+            logger.info(f"SKIPPING TWEET (DEV_MODE Enabled & Tweet Author isn't Dev): {tweet.id}, {tweet.author_id} ")
+            return None
+        if not DEV_MODE and tweet.author_id == DEV_ID:
+            logger.info(f"SKIPPING TWEET (DEV_Mode Disabled & Tweet Author is Dev): {tweet.id}, {tweet.author_id} ")
+            return None
 
         items = tuple(Item(inspect_link=match.group()) for match in matches)
 

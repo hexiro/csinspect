@@ -23,11 +23,11 @@ ENABLE_TWITTER_LIVE: t.Final = os.getenv("ENABLE_TWITTER_LIVE", default="true").
 
 
 # --- dev mode ---
-IS_DEV: t.Final = os.getenv("IS_DEV", default="false").lower() == "true"
-ONLY_RESPOND_TO_DEV: t.Final = IS_DEV and os.getenv("ONLY_RESPOND_TO_DEV", default="false").lower() == "true"
-DEV_DONT_SEND_TWEETS: t.Final = IS_DEV and os.getenv("DEV_DONT_SEND_TWEETS", default="false").lower() == "true"
-DEV_ID: t.Final = int(os.environ["DEV_ID"]) if IS_DEV and ONLY_RESPOND_TO_DEV and "DEV_ID" in os.environ else None
-LEVEL = "DEBUG" if IS_DEV else "INFO"
+DEV_MODE: t.Final = os.getenv("DEV_MODE", default="false").lower() == "true"
+DEV_ID: t.Final = int(os.environ["DEV_ID"]) if DEV_MODE else None
+# don't send tweets
+DEV_SILENT: t.Final = os.getenv("DEV_SILENT", default="false").lower() == "true"
+LEVEL = "DEBUG" if DEV_MODE else "INFO"
 
 # --- twitter ---
 TWITTER_LIVE_RULES: t.Final = [
