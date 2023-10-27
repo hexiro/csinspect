@@ -32,11 +32,13 @@ LEVEL = "DEBUG" if IS_DEV else "INFO"
 # --- twitter ---
 TWITTER_LIVE_RULES: t.Final = [
     tweepy.StreamRule('"+csgo_econ_action_preview"', tag="+csgo_econ_action_preview'"),
+    tweepy.StreamRule('"+cs2_econ_action_preview"', tag="+cs2_econ_action_preview'"),
+    tweepy.StreamRule('"+cs_econ_action_preview"', tag="+cs_econ_action_preview'"),
     tweepy.StreamRule('"steam://rungame/730"', tag="steam://rungame/730"),
 ]
 TWITTER_INSPECT_LINK_QUERY: t.Final = '"steam://rungame/730" OR "+csgo_econ_action_preview"'
 TWITTER_INSPECT_URL_REGEX: t.Final = re.compile(
-    "(steam://rungame/730/[0-9]+/(?:\\+| )csgo_econ_action_preview(?:%20| ))(?:(?P<S>S[0-9]+)|(?P<M>M[0-9]+))(?P<A>A[0-9]+)(?P<D>D[0-9]+)"
+    "(steam://rungame/730/[0-9]+/(?:\+| )(?:csgo|cs2|cs)_econ_action_preview(?:%20| ))(?:(?P<S>S[0-9]+)|(?P<M>M[0-9]+))(?P<A>A[0-9]+)(?P<D>D[0-9]+)"
 )
 
 TWEET_EXPANSIONS: t.Final = ["author_id", "attachments.media_keys"]
