@@ -6,9 +6,9 @@ from datetime import datetime
 import sentry_sdk
 from loguru import logger
 
-from csinspect.config import IS_DEV, LEVEL, LOGS_DIRECTORY, SENTRY_DSN, SENTRY_TRACES_SAMPLE_RATE
+from csinspect.config import LEVEL, DEV_MODE, LOGS_DIRECTORY, SENTRY_DSN, SENTRY_TRACES_SAMPLE_RATE
 
-if not IS_DEV and SENTRY_DSN:
+if not DEV_MODE and SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,

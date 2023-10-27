@@ -26,7 +26,7 @@ def get_redis() -> Redis[str]:
 async def tweet_state(tweet: TweetWithInspectLink) -> TweetResponseState | None:
     redis_ = get_redis()
 
-    key = str(tweet.id)
+    key = f"tweet:{tweet.id}"
     tweet_value = await redis_.get(key)
 
     if not tweet_value:
@@ -48,4 +48,23 @@ async def update_tweet_state(tweet: TweetWithInspectLink, *, successful: bool) -
         if state:
             data["failed_attempts"] = state.failed_attempts + 1
 
-    await redis_.set(name=str(tweet.id), value=json.dumps(data), ex=REDIS_EX)
+    await redis_.set(name=f"tweet:{tweet.id}", value=json.dumps(data), ex=REDIS_EX)
+
+
+async def start_time() -> datetime | None:
+    redis_ = get_redis()
+
+    start_time_string = await redis_.get("api:start_time")
+    if not start_time_string:
+        return None
+
+    try:
+        start_time = datetime.fromisoformat(start_time_string)
+    except ValueError:
+        return None
+    
+    return start_time
+
+async def update_start_time() -> None:
+    redis_ = get_redis()
+    await redis_.set(name="api:start_time", value=datetime.utcnow().isoformat(), ex=REDIS_EX)

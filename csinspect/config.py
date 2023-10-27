@@ -59,6 +59,7 @@ REDIS_HOST: t.Final = os.getenv("REDIS_HOST", default="localhost")
 REDIS_PASSWORD: t.Final = os.getenv("REDIS_PASSWORD", default=None)
 REDIS_PORT: t.Final = int(os.getenv("REDIS_PORT", default=6379))
 REDIS_DATABASE: t.Final = int(os.getenv("REDIS_DATABASE", default=0))
+# approx. one month (in seconds)
 REDIS_EX: t.Final = 60 * 60 * 24 * 30
 
 # --- sentry ---
