@@ -9,8 +9,8 @@ from csinspect.csinspect import CSInspect
 
 async def main() -> None:
     try:
-        csgo_inspect = CSInspect()
-        await csgo_inspect.run()
+        cs_inspect = CSInspect()
+        await cs_inspect.run()
     except Exception:
         logger.exception("Error Running CSInspect")
 

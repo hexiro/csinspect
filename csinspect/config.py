@@ -11,6 +11,7 @@ import typing as t
 
 # --- paths ---
 PARENT_DIRECTORY: t.Final = pathlib.Path(__file__).parents[1]
+LOGS_DIRECTORY = PARENT_DIRECTORY / "logs"
 DOTENV_PATH: t.Final = PARENT_DIRECTORY / ".env"
 if DOTENV_PATH.is_file():
     dotenv.load_dotenv(DOTENV_PATH)
@@ -26,7 +27,7 @@ IS_DEV: t.Final = os.getenv("IS_DEV", default="false").lower() == "true"
 ONLY_RESPOND_TO_DEV: t.Final = IS_DEV and os.getenv("ONLY_RESPOND_TO_DEV", default="false").lower() == "true"
 DEV_DONT_SEND_TWEETS: t.Final = IS_DEV and os.getenv("DEV_DONT_SEND_TWEETS", default="false").lower() == "true"
 DEV_ID: t.Final = int(os.environ["DEV_ID"]) if IS_DEV and ONLY_RESPOND_TO_DEV and "DEV_ID" in os.environ else None
-
+LEVEL = "DEBUG" if IS_DEV else "INFO"
 
 # --- twitter ---
 TWITTER_LIVE_RULES: t.Final = [
@@ -60,3 +61,4 @@ REDIS_EX: t.Final = 60 * 60 * 24 * 30
 
 # --- sentry ---
 SENTRY_DSN: t.Final = os.getenv("SENTRY_DSN")
+SENTRY_TRACES_SAMPLE_RATE: t.Final = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", default=0.0))

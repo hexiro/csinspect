@@ -6,32 +6,27 @@ from datetime import datetime
 import sentry_sdk
 from loguru import logger
 
-from csinspect.config import IS_DEV, PARENT_DIRECTORY, SENTRY_DSN
+from csinspect.config import IS_DEV, LEVEL, LOGS_DIRECTORY, SENTRY_DSN, SENTRY_TRACES_SAMPLE_RATE
 
 if not IS_DEV and SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        # We recommend adjusting this value in production.
-        traces_sample_rate=1.0,
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
     )
 
-LEVEL = "DEBUG" if IS_DEV else "INFO"
+LOGS_DIRECTORY.mkdir(exist_ok=True)
 
-logs = PARENT_DIRECTORY / "logs"
-logs.mkdir(exist_ok=True)
+# --- formats ---
+TIME_FORMAT = "<red>[{time:h:mm:ss A}]</red>"
+LEVEL_FORMAT = "<level>{level: <8}</level>"
+MESSAGE_FORMAT = "<bold>{message}</bold>"
+LOG_FORMAT = f"{TIME_FORMAT} {LEVEL_FORMAT} | {MESSAGE_FORMAT}"
 
-time_format = "<red>[{time:h:mm:ss A}]</red>"
-level_format = "<level>{level: <8}</level>"
-
-message_format = "<bold>{message}</bold>"
-log_format = f"{time_format} {level_format} | {message_format}"
-
-config = {
+CONFIG = {
     "handlers": [
-        {"sink": sys.stdout, "format": log_format, "level": LEVEL},
-        {"sink": f"{logs}/{datetime.now():%Y-%m-%d}.log", "rotation": "1 day", "format": log_format, "level": "DEBUG"},
+        {"sink": sys.stdout, "format": LOG_FORMAT, "level": LEVEL},
+        {"sink": f"{LOGS_DIRECTORY}/{datetime.now():%Y-%m-%d}.log", "rotation": "1 day", "format": LOG_FORMAT, "level": "DEBUG"},
     ]
 }
-logger.configure(**config)  # type: ignore[arg-type]
+
+logger.configure(**CONFIG)  # type: ignore[arg-type]
