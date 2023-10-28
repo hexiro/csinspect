@@ -10,7 +10,7 @@ from functools import lru_cache
 from loguru import logger
 from redis.asyncio import Redis
 
-from csinspect.config import REDIS_DATABASE, REDIS_EX, REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
+from csinspect.config import DEV_MODE, REDIS_DATABASE, REDIS_EX, REDIS_HOST, REDIS_PASSWORD, REDIS_PORT, SILENT_MODE
 from csinspect.typings import TweetResponseState
 
 if t.TYPE_CHECKING:
@@ -66,5 +66,9 @@ async def start_time() -> datetime | None:
     return start_time
 
 async def update_start_time() -> None:
+    # don't update next search's start time if tweets aren't actively sent in prod mode.
+    if DEV_MODE or SILENT_MODE:
+        return
+    
     redis_ = get_redis()
     await redis_.set(name="api:start_time", value=datetime.utcnow().isoformat(), ex=REDIS_EX)
