@@ -11,9 +11,9 @@ from csinspect import redis_, screenshot, twitter
 from csinspect.config import (
     DEV_ID,
     DEV_MODE,
-    DEV_SILENT,
     ENABLE_TWITTER_LIVE,
     ENABLE_TWITTER_SEARCH,
+    SILENT_MODE,
     TWEET_SEARCH_DELAY,
     TWITTER_INSPECT_LINK_QUERY,
     TWITTER_INSPECT_URL_REGEX,
@@ -57,7 +57,7 @@ class CSInspect:
             start_time=tweet_start_time,
         )  # type: ignore
         
-        tweets: list[tweepy.Tweet] = search_results.data
+        tweets: list[tweepy.Tweet] = search_results.data or []
         tasks: list[asyncio.Task[TweetWithInspectLink | None]] = []
 
         for tweet in tweets:
@@ -131,8 +131,8 @@ class CSInspect:
         logger.info(f"REPLYING TO TWEET: {tweet.url}")
         logger.debug(f"{tweet.items=}")
 
-        if DEV_SILENT:
-            logger.info("SKIPPING TWEET (DEV_SILENT MODE IS ENABLED)")
+        if SILENT_MODE:
+            logger.success("SKIPPING TWEET (SILENT_MODE IS ENABLED)")
             return
 
         try:
