@@ -12,7 +12,7 @@ class Item:
     image_id: str | None = field(compare=False, init=False, hash=False, default=None)
 
     @property
-    def image_link(self) -> str:
+    def image_link(self: Item) -> str:
         return f"https://s.swap.gg/{self.image_id}.jpg"
 
     @property

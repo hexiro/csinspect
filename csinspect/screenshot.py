@@ -14,14 +14,14 @@ if t.TYPE_CHECKING:
 
 class Screenshot:
     USER_AGENT = "csinspect; (+https://github.com/hexiro/csinspect)"
-    SWAPGG_API_HEADERS = {
+    SWAPGG_API_HEADERS: t.ClassVar = {
         "Accept": "application/json",
         "Accept-Language": "en-US,en;q=0.9",
         "Referer": "https://swap.gg/",
         "Referrer-Policy": "strict-origin-when-cross-origin",
         "User-Agent": USER_AGENT,
     }
-    SWAP_GG_WS_HEADERS = {
+    SWAP_GG_WS_HEADERS: t.ClassVar = {
         "User-Agent": USER_AGENT,
     }
 
@@ -40,7 +40,7 @@ class Screenshot:
         self.swap_gg_socket.on("disconnect", on_disconnect)
         self.swap_gg_socket.on("screenshot:ready", self.on_swap_gg_screenshot)
 
-    async def connect_websocket(self) -> None:
+    async def connect_websocket(self: Screenshot) -> None:
         if self.swap_gg_socket.connected:
             return
 

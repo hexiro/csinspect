@@ -77,7 +77,7 @@ class CSInspect:
         tasks = filter(None, (running_search_task, running_live_task))
         await asyncio.gather(*tasks)
 
-    async def search_task(self) -> asyncio.Task | None:
+    async def search_task(self: CSInspect) -> asyncio.Task | None:
         if not ENABLE_TWITTER_SEARCH:
             logger.debug("NOT STARTING: SEARCH TWEETS")
             return None
@@ -103,7 +103,7 @@ class CSInspect:
         task = asyncio.create_task(coro)
         return task
 
-    async def live_task(self) -> asyncio.Task | None:
+    async def live_task(self: CSInspect) -> asyncio.Task | None:
         if not ENABLE_TWITTER_LIVE or self.twitter.live is None:
             logger.debug("NOT STARTING: LIVE TWEETS")
             return None
