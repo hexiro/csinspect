@@ -77,7 +77,7 @@ class Screenshot:
             return False
 
         try:
-            result: SwapGGScreenshotResult = data["result"]  # type: ignore[assignment]
+            result: SwapGGScreenshotResult = data["result"]  # type: ignore[assignment, typeddict-item]
         except KeyError:
             logger.debug(f"SWAP.GG SCREENSHOT FAILED (No Result): {data}")
             return False
