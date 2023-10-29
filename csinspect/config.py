@@ -3,11 +3,10 @@ from __future__ import annotations
 import os
 import pathlib
 import re
+import typing as t
 
 import dotenv
 import tweepy
-import typing as t
-
 
 # --- paths ---
 PARENT_DIRECTORY: t.Final = pathlib.Path(__file__).parents[1]

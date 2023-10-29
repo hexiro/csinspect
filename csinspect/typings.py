@@ -16,6 +16,7 @@ class SwapGGErrorScreenshotResponse(TypedDict):
 
 SwapGGScreenshotResponse: t.TypeAlias = SwapGGSSuccessfulScreenshotResponse | SwapGGErrorScreenshotResponse
 
+
 class SwapGGScreenshotResult(TypedDict):
     imageId: str
     inspectLink: str
@@ -34,6 +35,7 @@ class _BaseTweetResponseRawData(TypedDict):
 
 class TweetResponseRawData(_BaseTweetResponseRawData, total=False):
     failed_attempts: int
+
 
 class TweetResponseState(NamedTuple):
     successful: bool

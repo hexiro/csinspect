@@ -14,15 +14,15 @@ from csinspect.config import (
     ENABLE_TWITTER_LIVE,
     ENABLE_TWITTER_SEARCH,
     SILENT_MODE,
+    TWEET_EXPANSIONS,
+    TWEET_MAX_FAILED_ATTEMPTS,
+    TWEET_MAX_IMAGES,
     TWEET_SEARCH_DELAY,
+    TWEET_TWEET_FIELDS,
+    TWEET_USER_FIELDS,
     TWITTER_INSPECT_LINK_QUERY,
     TWITTER_INSPECT_URL_REGEX,
     TWITTER_LIVE_RULES,
-    TWEET_MAX_FAILED_ATTEMPTS,
-    TWEET_EXPANSIONS,
-    TWEET_TWEET_FIELDS,
-    TWEET_USER_FIELDS,
-    TWEET_MAX_IMAGES,
 )
 from csinspect.item import Item
 from csinspect.tweet import TweetWithInspectLink
@@ -56,7 +56,7 @@ class CSInspect:
             max_results=50,
             start_time=tweet_start_time,
         )  # type: ignore
-        
+
         tweets: list[tweepy.Tweet] = search_results.data or []
         tasks: list[asyncio.Task[TweetWithInspectLink | None]] = []
 

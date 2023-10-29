@@ -25,7 +25,12 @@ LOG_FORMAT = f"{TIME_FORMAT} {LEVEL_FORMAT} | {MESSAGE_FORMAT}"
 CONFIG = {
     "handlers": [
         {"sink": sys.stdout, "format": LOG_FORMAT, "level": "DEBUG" if DEV_MODE else "INFO"},
-        {"sink": f"{LOGS_DIRECTORY}/{datetime.now():%Y-%m-%d}.log", "rotation": "1 day", "format": LOG_FORMAT, "level": "DEBUG"},
+        {
+            "sink": f"{LOGS_DIRECTORY}/{datetime.now():%Y-%m-%d}.log",
+            "rotation": "1 day",
+            "format": LOG_FORMAT,
+            "level": "DEBUG",
+        },
     ]
 }
 

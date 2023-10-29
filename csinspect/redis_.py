@@ -62,13 +62,14 @@ async def start_time() -> datetime | None:
         start_time = datetime.fromisoformat(start_time_string)
     except ValueError:
         return None
-    
+
     return start_time
+
 
 async def update_start_time() -> None:
     # don't update next search's start time if tweets aren't actively sent in prod mode.
     if DEV_MODE or SILENT_MODE:
         return
-    
+
     redis_ = get_redis()
     await redis_.set(name="api:start_time", value=datetime.utcnow().isoformat(), ex=REDIS_EX)

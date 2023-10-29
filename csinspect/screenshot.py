@@ -56,7 +56,6 @@ class Screenshot:
         logger.debug(f"SCREENSHOT READY: {image_id}")
         self.screenshot_queue.remove(image_id)
 
-
     async def swap_gg_screenshot(self: Screenshot, item: Item) -> bool:
         try:
             async with httpx.AsyncClient() as session:
@@ -100,7 +99,6 @@ class Screenshot:
             await asyncio.sleep(1)
 
         return True
-
 
     async def screenshot_item(self: Screenshot, item: Item) -> bool:
         logger.debug(f"SCREENSHOTTING: {item.inspect_link}")
