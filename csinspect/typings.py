@@ -14,7 +14,7 @@ class SwapGGErrorScreenshotResponse(TypedDict):
     status: t.Literal["STEAM_ERROR"] | str
 
 
-SwapGGScreenshotResponse: t.TypeAlias = SwapGGSSuccessfulScreenshotResponse | SwapGGErrorScreenshotResponse
+type SwapGGScreenshotResponse = SwapGGSSuccessfulScreenshotResponse | SwapGGErrorScreenshotResponse
 
 
 class SwapGGScreenshotResult(TypedDict):
