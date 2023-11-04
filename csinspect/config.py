@@ -10,7 +10,6 @@ import tweepy
 
 # --- paths ---
 PARENT_DIRECTORY: t.Final = pathlib.Path(__file__).parents[1]
-LOGS_DIRECTORY = PARENT_DIRECTORY / "logs"
 DOTENV_PATH: t.Final = PARENT_DIRECTORY / ".env"
 if DOTENV_PATH.is_file():
     dotenv.load_dotenv(DOTENV_PATH)
