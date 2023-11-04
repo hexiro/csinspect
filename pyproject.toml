@@ -7,7 +7,7 @@ license = "GPL v3"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.11"
 tweepy = { extras = ["async"], version = "^4.14.0" }
 httpx = "^0.25.0"
 redis = "^5.0.1"
