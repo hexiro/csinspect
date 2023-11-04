@@ -35,6 +35,7 @@ class CSInspect:
     def __init__(self: CSInspect) -> None:
         self.screenshot = screenshot.Screenshot()
         self.twitter = twitter.Twitter(on_tweet=self.on_tweet)
+        self.lock = asyncio.Semaphore(value=3)
 
     async def on_tweet(self: CSInspect, tweet: tweepy.Tweet) -> None:
         tweet_with_items = await self.parse_tweet(tweet)
@@ -168,20 +169,21 @@ class CSInspect:
             logger.info(f"SKIPPING TWEET (DEV_Mode Disabled & Tweet Author is Dev): {tweet.id}, {tweet.author_id} ")
             return None
 
-        items = tuple(Item(inspect_link=match.group()) for match in matches)
+        async with self.lock:
+            items = tuple(Item(inspect_link=match.group()) for match in matches)
+            
+            tweet_with_items = TweetWithInspectLink(items, tweet)
+            tweet_state = await redis_.tweet_state(tweet_with_items)
 
-        tweet_with_items = TweetWithInspectLink(items, tweet)
-        tweet_state = await redis_.tweet_state(tweet_with_items)
+            if not tweet_state:
+                return tweet_with_items
 
-        if not tweet_state:
+            if tweet_state.failed_attempts > TWEET_MAX_FAILED_ATTEMPTS:
+                logger.info(f"SKIPPING TWEET (Too Many Failed Attempts): {tweet.id}")
+                return None
+
+            if tweet_state.successful:
+                logger.info(f"SKIPPING TWEET (Already Successfully Responded): {tweet.id}")
+                return None
+
             return tweet_with_items
-
-        if tweet_state.failed_attempts > TWEET_MAX_FAILED_ATTEMPTS:
-            logger.info(f"SKIPPING TWEET (Too Many Failed Attempts): {tweet.id}")
-            return None
-
-        if tweet_state.successful:
-            logger.info(f"SKIPPING TWEET (Already Successfully Responded): {tweet.id}")
-            return None
-
-        return tweet_with_items
