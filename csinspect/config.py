@@ -35,7 +35,7 @@ TWITTER_LIVE_RULES: t.Final = [
 ]
 TWITTER_INSPECT_LINK_QUERY: t.Final = '"steam://rungame/730" OR "+csgo_econ_action_preview"'
 TWITTER_INSPECT_URL_REGEX: t.Final = re.compile(
-    "(steam://rungame/730/[0-9]+/(?:\\+| )(?:csgo|cs2|cs)_econ_action_preview(?:%20| ))(?:(?P<S>S[0-9]+)|(?P<M>M[0-9]+))(?P<A>A[0-9]+)(?P<D>D[0-9]+)"
+    r"(steam://rungame/730/[0-9]+/(?:\+| )(?:csgo|cs2|cs)_econ_action_preview(?:%20| ))(?:(?P<S>S[0-9]+)|(?P<M>M[0-9]+))(?P<A>A[0-9]+)(?P<D>D[0-9]+)"
 )
 
 TWEET_EXPANSIONS: t.Final = ["author_id", "attachments.media_keys"]
