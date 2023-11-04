@@ -90,8 +90,9 @@ class CSInspect:
                 await self.process_tweets(items_tweets)
             except Exception:
                 logger.exception("Error Finding or Processing Tweets")
+                return
 
-            logger.info(f"DONE FINDING TWEETS (Past {TWEET_SEARCH_DELAY} Seconds)")
+            logger.info(f"DONE FINDING TWEETS ({len(items_tweets)} TWEETS FOUND)")
 
         async def incrementally_find_and_process_tweets() -> None:
             logger.debug("STARTING: SEARCH TWEETS")
