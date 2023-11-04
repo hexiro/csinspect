@@ -63,6 +63,9 @@ async def start_time() -> datetime | None:
     except ValueError:
         return None
 
+    if (datetime.now() - start_time).days >= 6:
+        return None
+
     return start_time
 
 
