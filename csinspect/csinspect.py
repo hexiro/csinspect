@@ -48,14 +48,12 @@ class CSInspect:
         task.add_done_callback(task_set.discard)
 
     async def find_tweets(self: CSInspect) -> list[TweetWithInspectLink]:
-        tweet_start_time = await redis_.start_time()
         search_results: tweepy.Response = await self.twitter.v2.search_recent_tweets(
             query=TWITTER_INSPECT_LINK_QUERY,
             expansions=TWEET_EXPANSIONS,
             tweet_fields=TWEET_TWEET_FIELDS,
             user_fields=TWEET_USER_FIELDS,
             max_results=50,
-            start_time=tweet_start_time,
         )  # type: ignore
 
         tweets: list[tweepy.Tweet] = search_results.data or []
@@ -66,10 +64,9 @@ class CSInspect:
             task = asyncio.create_task(coro)
             tasks.append(task)
 
-        inspect_link_tweets_coro = asyncio.gather(*tasks)
-        inspect_link_tweets, _ = await asyncio.gather(inspect_link_tweets_coro, redis_.update_start_time())
-
+        inspect_link_tweets = await asyncio.gather(*tasks)
         filtered_inspect_link_tweets = [t for t in inspect_link_tweets if t is not None]
+        
         return filtered_inspect_link_tweets
 
     async def run(self: CSInspect) -> None:

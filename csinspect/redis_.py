@@ -50,29 +50,3 @@ async def update_tweet_state(tweet: TweetWithInspectLink, *, successful: bool) -
 
     await redis_.set(name=f"tweet:{tweet.id}", value=json.dumps(data), ex=REDIS_EX)
 
-
-async def start_time() -> datetime | None:
-    redis_ = get_redis()
-
-    start_time_string = await redis_.get("api:start_time")
-    if not start_time_string:
-        return None
-
-    try:
-        start_time = datetime.fromisoformat(start_time_string)
-    except ValueError:
-        return None
-
-    if (datetime.now() - start_time).days >= 6:
-        return None
-
-    return start_time
-
-
-async def update_start_time() -> None:
-    # don't update next search's start time if tweets aren't actively sent in prod mode.
-    if DEV_MODE or SILENT_MODE:
-        return
-
-    redis_ = get_redis()
-    await redis_.set(name="api:start_time", value=datetime.utcnow().isoformat(), ex=REDIS_EX)
