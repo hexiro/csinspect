@@ -42,7 +42,7 @@ TWEET_EXPANSIONS: t.Final = ["author_id", "attachments.media_keys"]
 TWEET_TWEET_FIELDS: t.Final = ["id", "text", "attachments", "conversation_id"]
 TWEET_USER_FIELDS: t.Final = ["id", "name", "username"]
 TWEET_MAX_IMAGES: t.Final = 4
-TWEET_MAX_FAILED_ATTEMPTS: t.Final = int(os.getenv("TWEET_MAX_FAILED_ATTEMPTS", default=3))
+TWEET_MAX_FAILED_ATTEMPTS: t.Final = int(os.getenv("TWEET_MAX_FAILED_ATTEMPTS", default=25))
 TWEET_SEARCH_DELAY: t.Final = int(os.getenv("TWEET_SEARCH_DELAY", default=60 * 2))
 
 TWITTER_BEARER_TOKEN = os.environ["TWITTER_BEARER_TOKEN"]
