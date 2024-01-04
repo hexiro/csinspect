@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import typing as t
 
 import httpx
@@ -68,6 +69,9 @@ class Screenshot:
             data: SwapGGScreenshotResponse = response.json()
         except httpx.HTTPError:
             logger.exception(f"SWAP.GG SCREENSHOT FAILED (HTTP ERROR: {item.inspect_link})")
+            return False
+        except json.JSONDecodeError:
+            logger.exception(f"SWAP.GG SCREENSHOT FAILED (JSON DECODE ERROR: {item.inspect_link})")
             return False
 
         logger.debug(f"SWAP.GG SCREENSHOT RESPONSE: {data}")
